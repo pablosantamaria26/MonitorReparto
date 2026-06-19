@@ -1200,7 +1200,7 @@ async function loadHistory() {
         .limit(40),
       sb.from('reportes_reparto')
         .select('fecha,turno,reporte_ia,ruta_optima,metricas')
-        .order('fecha', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(40),
     ]);
     if (e1) throw e1;
