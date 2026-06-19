@@ -1,12 +1,13 @@
 {
-  "name": "Monitor de Reparto",
+  "name": "Monitor de Reparto — Mercado Limpio",
   "short_name": "Monitor",
   "description": "Control en tiempo real del reparto — Mercado Limpio",
   "start_url": "./",
   "id": "./",
   "display": "standalone",
-  "background_color": "#070d1a",
-  "theme_color": "#0d1526",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "background_color": "#f0f4ff",
+  "theme_color": "#10b981",
   "orientation": "any",
   "lang": "es-AR",
   "categories": ["logistics", "business"],
@@ -29,12 +30,17 @@
     {
       "name": "Monitor en vivo",
       "url": "./?tab=monitor",
-      "description": "Ver estado del reparto en tiempo real"
+      "description": "Ver estado del reparto en tiempo real",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Historial",
       "url": "./?tab=historial",
-      "description": "Ver rendiciones anteriores"
+      "description": "Ver rendiciones anteriores",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     }
-  ]
+  ],
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  }
 }

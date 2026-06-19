@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<meta name="theme-color" content="#0d1526"/>
+<meta name="theme-color" content="#10b981"/>
 <meta name="description" content="Monitor de Reparto en tiempo real — Mercado Limpio"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
 <meta name="apple-mobile-web-app-title" content="Monitor"/>
 <link rel="manifest" href="manifest.json"/>
 <link rel="apple-touch-icon" href="icons/icon-192.png"/>
@@ -16,31 +16,48 @@
 <style>
 /* ─── Tokens ──────────────────────────────────────────────────────────────── */
 :root{
-  --bg:       #070d1a;
-  --s1:       #0d1526;
-  --s2:       #132038;
-  --s3:       #1a2d4a;
-  --border:   #1e3050;
-  --border-h: #2a4470;
-  --text:     #e8f0fe;
-  --muted:    #6b87b0;
-  --subtle:   #8fa8cc;
+  --bg:        #f0f4ff;
+  --s1:        #ffffff;
+  --s2:        #f8fafc;
+  --s3:        #f1f5f9;
+  --border:    #e2e8f0;
+  --border-h:  #cbd5e1;
+  --text:      #1e293b;
+  --muted:     #94a3b8;
+  --subtle:    #64748b;
 
-  --green:    #22c55e;
-  --green-d:  #14532d;
-  --green-bg: #031a0d;
-  --amber:    #f59e0b;
-  --amber-d:  #78350f;
-  --amber-bg: #1a0e00;
-  --blue:     #3b82f6;
-  --blue-d:   #1d4ed8;
-  --blue-bg:  #071830;
-  --red:      #ef4444;
-  --red-bg:   #1f0808;
+  --green:        #10b981;
+  --green-d:      #059669;
+  --green-bg:     #ecfdf5;
+  --green-border: #6ee7b7;
+  --green-text:   #065f46;
+
+  --amber:        #f59e0b;
+  --amber-d:      #d97706;
+  --amber-bg:     #fffbeb;
+  --amber-border: #fcd34d;
+  --amber-text:   #78350f;
+
+  --blue:        #3b82f6;
+  --blue-d:      #2563eb;
+  --blue-bg:     #eff6ff;
+  --blue-border: #93c5fd;
+  --blue-text:   #1e40af;
+
+  --violet:        #8b5cf6;
+  --violet-bg:     #f5f3ff;
+  --violet-border: #c4b5fd;
+  --violet-text:   #4c1d95;
+
+  --rose:        #f43f5e;
+  --rose-bg:     #fff1f2;
+  --rose-border: #fda4af;
 
   --r:14px;--rs:9px;--rm:12px;
   --transition:.2s ease;
-  --shadow: 0 4px 24px rgba(0,0,0,.45);
+  --shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.05);
+  --shadow-md: 0 4px 16px rgba(0,0,0,.1);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,.14);
 }
 
 /* ─── Reset ───────────────────────────────────────────────────────────────── */
@@ -51,108 +68,126 @@ body{
   background:var(--bg);color:var(--text);line-height:1.4;
   display:flex;flex-direction:column;
 }
-a{color:var(--blue);text-decoration:none}
+a{color:var(--blue-d);text-decoration:none}
 button{
   font-family:inherit;font-size:13px;cursor:pointer;
-  background:var(--s2);color:var(--text);
+  background:var(--s1);color:var(--text);
   border:1px solid var(--border);border-radius:var(--rs);
   padding:7px 13px;
-  transition:filter var(--transition),border-color var(--transition),background var(--transition);
+  transition:all var(--transition);
   display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
 }
-button:hover{filter:brightness(1.2);border-color:var(--border-h)}
-button:active{filter:brightness(.9)}
+button:hover{background:var(--s2);border-color:var(--border-h);box-shadow:var(--shadow)}
+button:active{transform:scale(.98)}
 
 /* ─── Header ──────────────────────────────────────────────────────────────── */
 header{
-  background:var(--s1);border-bottom:1px solid var(--border);
+  background:linear-gradient(135deg,#10b981 0%,#3b82f6 100%);
   padding:10px 16px;flex-shrink:0;z-index:200;
+  box-shadow:0 2px 12px rgba(16,185,129,.3);
 }
 .hdr{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .hdr__brand{display:flex;align-items:center;gap:10px;flex-shrink:0}
-.hdr__logo{font-size:22px;line-height:1}
-.hdr__name{font-size:15px;font-weight:700;letter-spacing:-.3px}
-.hdr__sub{font-size:11px;color:var(--muted);margin-top:1px}
+.hdr__logo{font-size:24px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.2))}
+.hdr__name{font-size:15px;font-weight:800;letter-spacing:-.3px;color:#fff}
+.hdr__sub{font-size:11px;color:rgba(255,255,255,.8);margin-top:1px}
 
 .hdr__info{
   display:flex;align-items:center;gap:8px;flex-wrap:wrap;
-  font-size:13px;color:var(--subtle);flex:1;
+  font-size:13px;color:rgba(255,255,255,.9);flex:1;
 }
 .turno-pill{
-  background:var(--blue-bg);border:1px solid var(--blue-d);
-  color:var(--blue);border-radius:999px;padding:3px 10px;
-  font-size:12px;font-weight:600;
+  background:rgba(255,255,255,.25);border:1px solid rgba(255,255,255,.4);
+  color:#fff;border-radius:999px;padding:3px 10px;
+  font-size:12px;font-weight:700;backdrop-filter:blur(4px);
 }
-.turno-pill.tarde{background:#1a0a30;border-color:#6d28d9;color:#a78bfa}
+.turno-pill.tarde{background:rgba(139,92,246,.3);border-color:rgba(167,139,250,.5)}
 
 .hdr__right{display:flex;align-items:center;gap:8px;margin-left:auto}
-.conn{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)}
-.conn__dot{width:8px;height:8px;border-radius:50%;background:var(--muted);transition:background .4s}
-.conn__dot.ok{background:var(--green);box-shadow:0 0 6px var(--green)}
-.conn__dot.err{background:var(--red)}
-.conn__dot.sync{background:var(--amber);animation:pulse 1s infinite}
-@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+.conn{display:flex;align-items:center;gap:5px;font-size:12px;color:rgba(255,255,255,.85)}
+.conn__dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.4);transition:background .4s}
+.conn__dot.ok{background:#fff;box-shadow:0 0 6px rgba(255,255,255,.8)}
+.conn__dot.err{background:#fca5a5}
+.conn__dot.sync{background:#fde68a;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
 
-.btn-notif{background:transparent;border:none;font-size:18px;padding:4px;opacity:.6}
-.btn-notif:hover{opacity:1;filter:none}
+.btn-notif{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:17px;padding:5px 8px;border-radius:8px}
+.btn-notif:hover{background:rgba(255,255,255,.35)}
 .btn-install{
-  background:linear-gradient(135deg,var(--blue),var(--blue-d));
-  border-color:var(--blue-d);font-weight:600;font-size:12px;
+  background:rgba(255,255,255,.9);border:none;color:#10b981;
+  font-weight:700;font-size:12px;border-radius:8px;
+  box-shadow:0 2px 8px rgba(0,0,0,.15);
 }
-.btn-install:hover{filter:brightness(1.1)}
+.btn-install:hover{background:#fff}
 
 /* ─── KPI bar ─────────────────────────────────────────────────────────────── */
 #kpiBar{
   display:flex;gap:8px;padding:10px 16px;
-  background:var(--bg);border-bottom:1px solid var(--border);
+  background:var(--s1);border-bottom:1px solid var(--border);
   overflow-x:auto;flex-shrink:0;scrollbar-width:none;
+  box-shadow:0 1px 4px rgba(0,0,0,.04);
 }
 #kpiBar::-webkit-scrollbar{display:none}
 .kpi{
-  background:var(--s1);border:1px solid var(--border);border-radius:var(--rm);
+  background:var(--s2);border:1px solid var(--border);border-radius:var(--rm);
   padding:10px 14px;min-width:130px;flex-shrink:0;
-  transition:border-color var(--transition),transform var(--transition);
-  display:flex;flex-direction:column;gap:4px;
+  transition:all var(--transition);
+  display:flex;flex-direction:column;gap:3px;
+  position:relative;overflow:hidden;
 }
-.kpi:hover{border-color:var(--border-h);transform:translateY(-1px)}
-.kpi__label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
-.kpi__value{font-size:20px;font-weight:700;letter-spacing:-.5px;line-height:1.1}
+.kpi::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  border-radius:999px 999px 0 0;
+}
+.kpi:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--border-h)}
+.kpi__label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.kpi__value{font-size:20px;font-weight:800;letter-spacing:-.5px;line-height:1.1}
 .kpi__sub{font-size:11px;color:var(--muted)}
-.kpi--ok .kpi__value{color:var(--green)}
-.kpi--warn .kpi__value{color:var(--amber)}
-.kpi--blue .kpi__value{color:var(--blue)}
-.kpi__spark{height:2px;border-radius:999px;background:var(--border);overflow:hidden;margin-top:4px}
-.kpi__spark-fill{height:100%;width:0%;background:var(--green);transition:width .5s ease}
+.kpi__spark{height:3px;border-radius:999px;background:var(--border);overflow:hidden;margin-top:4px}
+.kpi__spark-fill{height:100%;width:0%;background:var(--green);transition:width .6s ease;border-radius:999px}
+
+.kpi--green .kpi__value{color:var(--green-d)}
+.kpi--green::before{background:linear-gradient(90deg,var(--green),var(--green-d))}
+.kpi--blue .kpi__value{color:var(--blue-d)}
+.kpi--blue::before{background:linear-gradient(90deg,var(--blue),var(--blue-d))}
+.kpi--amber .kpi__value{color:var(--amber-d)}
+.kpi--amber::before{background:linear-gradient(90deg,var(--amber),var(--amber-d))}
+.kpi--violet .kpi__value{color:var(--violet)}
+.kpi--violet::before{background:linear-gradient(90deg,var(--violet),#6d28d9)}
+.kpi--slate .kpi__value{color:var(--subtle)}
+.kpi--slate::before{background:linear-gradient(90deg,#64748b,#334155)}
 
 /* ─── Progress bar ────────────────────────────────────────────────────────── */
 #progressSection{
-  padding:8px 16px;background:var(--bg);border-bottom:1px solid var(--border);
+  padding:8px 16px;background:var(--s1);border-bottom:2px solid var(--border);
   flex-shrink:0;display:flex;align-items:center;gap:12px;
 }
 #progressTrack{
-  flex:1;height:8px;border-radius:999px;background:var(--s2);overflow:hidden;
+  flex:1;height:10px;border-radius:999px;background:var(--s3);overflow:hidden;
+  border:1px solid var(--border);
 }
 #progressFill{
   height:100%;width:0%;border-radius:999px;
-  background:linear-gradient(90deg,#059669,var(--green),#4ade80);
-  box-shadow:0 0 10px rgba(34,197,94,.4);
+  background:linear-gradient(90deg,#10b981,#3b82f6,#8b5cf6);
+  box-shadow:0 0 8px rgba(16,185,129,.4);
   transition:width .6s cubic-bezier(.4,0,.2,1);
 }
-#progressText{font-size:12px;color:var(--muted);white-space:nowrap;flex-shrink:0}
-#progressPct{font-size:13px;font-weight:700;color:var(--green);flex-shrink:0;min-width:38px;text-align:right}
+#progressText{font-size:12px;color:var(--muted);white-space:nowrap;flex-shrink:0;font-weight:500}
+#progressPct{font-size:14px;font-weight:800;color:var(--green-d);flex-shrink:0;min-width:38px;text-align:right}
 
 /* ─── Tab nav ─────────────────────────────────────────────────────────────── */
 #tabNav{
-  display:flex;gap:0;background:var(--s1);border-bottom:1px solid var(--border);
+  display:flex;gap:0;background:var(--s1);border-bottom:2px solid var(--border);
   flex-shrink:0;overflow-x:auto;scrollbar-width:none;padding:0 16px;
 }
 .tab-btn{
   background:transparent;border:none;border-radius:0;
-  padding:10px 16px;font-size:13px;color:var(--muted);
-  border-bottom:2px solid transparent;position:relative;
+  padding:10px 18px;font-size:13px;font-weight:600;color:var(--muted);
+  border-bottom:3px solid transparent;margin-bottom:-2px;
+  transition:all var(--transition);
 }
-.tab-btn:hover{color:var(--subtle);filter:none;border-color:transparent}
-.tab-btn.active{color:var(--text);border-bottom-color:var(--blue)}
+.tab-btn:hover{color:var(--subtle);background:var(--s2);filter:none;box-shadow:none}
+.tab-btn.active{color:var(--green-d);border-bottom-color:var(--green)}
 
 /* ─── Main area ───────────────────────────────────────────────────────────── */
 #mainArea{flex:1;overflow:hidden;display:flex;flex-direction:column}
@@ -160,104 +195,136 @@ header{
 .view.active{display:flex;flex-direction:column}
 
 /* ─── Monitor view: split layout ─────────────────────────────────────────── */
-#splitWrap{display:flex;flex:1;overflow:hidden;gap:0}
+#splitWrap{display:flex;flex:1;overflow:hidden}
 
-#mapPanel{flex:1;position:relative;min-width:0}
+#mapPanel{flex:0 0 48%;max-width:48%;position:relative;min-width:0}
 #map{position:absolute;inset:0}
 
 #listPanel{
-  width:380px;flex-shrink:0;display:flex;flex-direction:column;
+  flex:1;display:flex;flex-direction:column;
   border-left:1px solid var(--border);background:var(--s1);
-  overflow:hidden;
+  overflow:hidden;min-width:320px;
 }
 
 /* Filter pills */
 #listFilters{
-  display:flex;gap:0;padding:8px 10px;border-bottom:1px solid var(--border);
-  overflow-x:auto;scrollbar-width:none;flex-shrink:0;
+  display:flex;gap:6px;padding:8px 10px;border-bottom:1px solid var(--border);
+  overflow-x:auto;scrollbar-width:none;flex-shrink:0;background:var(--s2);
 }
 .filter-btn{
-  background:transparent;border:1px solid transparent;
-  border-radius:999px;padding:4px 12px;font-size:12px;color:var(--muted);
+  background:transparent;border:1px solid var(--border);
+  border-radius:999px;padding:4px 12px;font-size:12px;color:var(--muted);font-weight:600;
 }
-.filter-btn:hover{color:var(--subtle);border-color:var(--border);filter:none}
-.filter-btn.active{
-  background:var(--blue-bg);border-color:var(--blue-d);color:var(--blue);
+.filter-btn:hover{color:var(--text);border-color:var(--border-h);background:var(--s1);box-shadow:none}
+.filter-btn.active.f-todos{background:var(--s1);border-color:var(--border-h);color:var(--text)}
+.filter-btn.active.f-pendientes{background:var(--blue-bg);border-color:var(--blue-border);color:var(--blue-d)}
+.filter-btn.active.f-entregados{background:var(--green-bg);border-color:var(--green-border);color:var(--green-d)}
+.filter-btn.active.f-devoluciones{background:var(--amber-bg);border-color:var(--amber-border);color:var(--amber-d)}
+
+/* ── Avg time strip ────────────────────────────────────────────────────────── */
+#avgStrip{
+  display:none;align-items:center;gap:8px;padding:7px 12px;
+  background:linear-gradient(135deg,var(--violet-bg),var(--blue-bg));
+  border-bottom:1px solid var(--violet-border);flex-shrink:0;
 }
+#avgStrip.show{display:flex}
+.avg-label{font-size:11px;color:var(--violet);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.avg-value{font-size:14px;font-weight:800;color:var(--violet)}
+.avg-detail{font-size:11px;color:var(--subtle);margin-left:auto}
 
 /* Card list */
-#cardList{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:6px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+#cardList{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:0;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
 #cardList::-webkit-scrollbar{width:4px}
 #cardList::-webkit-scrollbar-thumb{background:var(--border);border-radius:999px}
 
 /* Delivery card */
 .d-card{
-  background:var(--s2);border:1px solid var(--border);border-radius:var(--rm);
-  padding:10px 12px;cursor:pointer;
-  transition:border-color var(--transition),transform var(--transition),background var(--transition);
-  animation:fadeUp .25s ease;
+  background:var(--s1);border:1px solid var(--border);border-radius:var(--rm);
+  padding:10px 12px;cursor:pointer;margin-bottom:6px;
+  transition:all var(--transition);
+  animation:fadeUp .25s ease;box-shadow:var(--shadow);
 }
-.d-card:hover{border-color:var(--border-h);transform:translateY(-1px);background:var(--s3)}
-.d-card.is-entregado{border-left:3px solid var(--green)}
-.d-card.is-devolucion{border-left:3px solid var(--amber)}
-.d-card.is-pendiente{border-left:3px solid var(--border)}
+.d-card:hover{border-color:var(--border-h);transform:translateY(-1px);box-shadow:var(--shadow-md)}
+.d-card.is-entregado{border-left:4px solid var(--green);background:linear-gradient(to right,rgba(16,185,129,.04),transparent 80px)}
+.d-card.is-devolucion{border-left:4px solid var(--amber);background:linear-gradient(to right,rgba(245,158,11,.04),transparent 80px)}
+.d-card.is-pendiente{border-left:4px solid #e2e8f0}
 @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* Interval separator */
+.interval-sep{
+  display:flex;align-items:center;gap:8px;padding:0 6px;margin-bottom:6px;
+}
+.interval-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--violet-border),transparent)}
+.interval-badge{
+  font-size:10px;font-weight:700;color:var(--violet);
+  background:var(--violet-bg);border:1px solid var(--violet-border);
+  border-radius:999px;padding:2px 8px;white-space:nowrap;flex-shrink:0;
+}
 
 .d-card__top{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
 .d-card__num{
-  flex-shrink:0;width:22px;height:22px;border-radius:50%;
-  background:var(--bg);border:1px solid var(--border);
+  flex-shrink:0;width:24px;height:24px;border-radius:50%;
+  background:var(--s3);border:1px solid var(--border);
   display:flex;align-items:center;justify-content:center;
-  font-size:10px;font-weight:700;color:var(--muted);margin-top:1px;
+  font-size:10px;font-weight:800;color:var(--subtle);margin-top:1px;
 }
-.d-card__name{font-size:14px;font-weight:600;line-height:1.2}
+.d-card__name{font-size:14px;font-weight:700;line-height:1.2;color:var(--text)}
 .d-card__loc{font-size:11px;color:var(--muted);margin-top:1px}
 .d-card__rows{display:flex;flex-direction:column;gap:3px}
 .d-card__row{font-size:12px;color:var(--subtle)}
-.d-card__bottom{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
-.d-card__importe{font-size:13px;font-weight:600;color:var(--text)}
+.d-card__bottom{display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:6px;border-top:1px solid var(--border)}
+.d-card__importe{font-size:13px;font-weight:700;color:var(--text)}
 .status-pill{
   display:inline-flex;align-items:center;gap:4px;
-  padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;
+  padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;
 }
-.status-pill.ok{background:var(--green-bg);color:var(--green);border:1px solid var(--green-d)}
-.status-pill.dev{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-d)}
-.status-pill.pend{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-d)}
+.status-pill.ok{background:var(--green-bg);color:var(--green-d);border:1px solid var(--green-border)}
+.status-pill.dev{background:var(--amber-bg);color:var(--amber-d);border:1px solid var(--amber-border)}
+.status-pill.pend{background:var(--blue-bg);color:var(--blue-d);border:1px solid var(--blue-border)}
 
 /* ─── Empty / waiting state ───────────────────────────────────────────────── */
 .state-empty{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:12px;padding:40px 24px;text-align:center;color:var(--muted);flex:1;
+  gap:12px;padding:40px 24px;text-align:center;flex:1;
 }
-.state-empty__icon{font-size:40px;animation:bob 3s ease-in-out infinite}
+.state-empty__icon{font-size:44px;animation:bob 3s ease-in-out infinite}
 @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-.state-empty__title{font-size:15px;font-weight:600;color:var(--subtle)}
-.state-empty__sub{font-size:13px;line-height:1.5;max-width:260px}
+.state-empty__title{font-size:15px;font-weight:700;color:var(--text)}
+.state-empty__sub{font-size:13px;line-height:1.5;max-width:260px;color:var(--muted)}
 
 /* ─── History view ────────────────────────────────────────────────────────── */
 #viewHistorial{overflow-y:auto;padding:16px;gap:8px}
 .hist-empty{text-align:center;padding:40px;color:var(--muted)}
+.h-summary{
+  background:linear-gradient(135deg,var(--violet-bg),var(--blue-bg));
+  border:1px solid var(--violet-border);border-radius:var(--r);
+  padding:14px 18px;margin-bottom:12px;
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+}
+.h-summary__stat{display:flex;flex-direction:column;gap:2px}
+.h-summary__label{font-size:11px;color:var(--violet);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.h-summary__val{font-size:18px;font-weight:800;color:var(--violet)}
+
 .h-card{
   background:var(--s1);border:1px solid var(--border);border-radius:var(--r);
-  overflow:hidden;margin-bottom:8px;
-  transition:border-color var(--transition);
+  overflow:hidden;margin-bottom:8px;box-shadow:var(--shadow);
+  transition:all var(--transition);
 }
-.h-card:hover{border-color:var(--border-h)}
+.h-card:hover{border-color:var(--border-h);box-shadow:var(--shadow-md)}
 .h-card__head{
   display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;
 }
 .h-card__badges{display:flex;gap:8px;align-items:center;flex-shrink:0}
-.h-turno{
-  font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;
-}
-.h-turno.mañana{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-d)}
-.h-turno.tarde{background:#1a0a30;color:#a78bfa;border:1px solid #6d28d9}
+.h-turno{font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px}
+.h-turno.mañana{background:var(--green-bg);color:var(--green-d);border:1px solid var(--green-border)}
+.h-turno.tarde{background:var(--violet-bg);color:var(--violet);border:1px solid var(--violet-border)}
 .h-card__info{flex:1;min-width:0}
-.h-card__title{font-size:14px;font-weight:600}
+.h-card__title{font-size:14px;font-weight:700;color:var(--text)}
 .h-card__sub{font-size:12px;color:var(--muted);margin-top:2px}
 .h-card__totals{text-align:right;flex-shrink:0}
 .h-card__total-line{font-size:12px;color:var(--subtle)}
-.h-card__grand{font-size:15px;font-weight:700;color:var(--green);margin-top:2px}
+.h-card__grand{font-size:15px;font-weight:800;color:var(--green-d);margin-top:2px}
+.h-card__avg{font-size:11px;font-weight:700;color:var(--violet);margin-top:2px}
 .h-card__chevron{font-size:12px;color:var(--muted);transition:transform .2s;flex-shrink:0}
 .h-card__chevron.open{transform:rotate(180deg)}
 
@@ -265,40 +332,40 @@ header{
 .h-card__body.show{display:block}
 .h-tbl{width:100%;border-collapse:collapse}
 .h-tbl thead th{
-  padding:8px 14px;text-align:left;font-size:11px;font-weight:600;
+  padding:8px 14px;text-align:left;font-size:11px;font-weight:700;
   color:var(--muted);text-transform:uppercase;letter-spacing:.5px;
   background:var(--s2);border-bottom:1px solid var(--border);
 }
-.h-tbl tbody td{padding:9px 14px;font-size:13px;border-bottom:1px solid var(--border)}
+.h-tbl tbody td{padding:9px 14px;font-size:13px;border-bottom:1px solid var(--border);color:var(--text)}
 .h-tbl tbody tr:last-child td{border-bottom:none}
 .h-tbl tbody tr:hover td{background:var(--s2)}
-.tbl-pill{display:inline-flex;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:600}
-.tbl-pill.ok{background:var(--green-bg);color:var(--green);border:1px solid var(--green-d)}
-.tbl-pill.dev{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-d)}
+.tbl-pill{display:inline-flex;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:700}
+.tbl-pill.ok{background:var(--green-bg);color:var(--green-d);border:1px solid var(--green-border)}
+.tbl-pill.dev{background:var(--amber-bg);color:var(--amber-d);border:1px solid var(--amber-border)}
 
-/* ─── Map marker ──────────────────────────────────────────────────────────── */
+/* ─── Map marker (light map) ──────────────────────────────────────────────── */
 .map-mk{
   width:32px;height:32px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;
-  font-size:13px;font-weight:700;border:2px solid;
-  box-shadow:0 2px 8px rgba(0,0,0,.5);
+  font-size:13px;font-weight:800;border:2px solid;
+  box-shadow:0 2px 8px rgba(0,0,0,.25);
   transition:transform .2s;cursor:pointer;
 }
 .map-mk:hover{transform:scale(1.15)}
-.map-mk.ok  {background:#052e16;border-color:#16a34a;color:var(--green)}
-.map-mk.dev {background:#1c0f00;border-color:#d97706;color:var(--amber)}
-.map-mk.pend{background:#071830;border-color:#1d4ed8;color:var(--blue)}
-.map-mk.base{background:#0c1f45;border-color:#1d4ed8;color:#fff;font-size:16px}
+.map-mk.ok  {background:var(--green);border-color:var(--green-d);color:#fff}
+.map-mk.dev {background:var(--amber);border-color:var(--amber-d);color:#fff}
+.map-mk.pend{background:var(--blue);border-color:var(--blue-d);color:#fff}
+.map-mk.base{background:#1e293b;border-color:#0f172a;color:#fff;font-size:16px}
 
-/* Leaflet popup dark override */
-.leaflet-popup-content-wrapper{background:var(--s2);color:var(--text);border:1px solid var(--border);box-shadow:var(--shadow)}
-.leaflet-popup-tip{background:var(--s2)}
+/* Leaflet popup light */
+.leaflet-popup-content-wrapper{background:#fff;color:var(--text);border:1px solid var(--border);box-shadow:var(--shadow-lg)}
+.leaflet-popup-tip{background:#fff}
 .leaflet-popup-content{margin:10px 14px;font-family:inherit;font-size:13px}
-.pop-title{font-weight:700;font-size:14px;margin-bottom:4px}
-.pop-name{color:var(--subtle);margin-bottom:2px}
+.pop-title{font-weight:800;font-size:14px;margin-bottom:4px;color:var(--text)}
+.pop-name{color:var(--subtle);margin-bottom:2px;font-weight:600}
 .pop-addr{font-size:11px;color:var(--muted);margin-bottom:8px}
 .pop-div{border-top:1px solid var(--border);margin:8px 0}
-.pop-estado{font-weight:600;margin-bottom:4px}
+.pop-estado{font-weight:700;margin-bottom:4px}
 .pop-row{font-size:12px;color:var(--subtle);margin-top:2px}
 
 /* ─── Toast notifications ─────────────────────────────────────────────────── */
@@ -307,52 +374,52 @@ header{
   display:flex;flex-direction:column;gap:8px;pointer-events:none;
 }
 .toast{
-  background:var(--s2);border:1px solid var(--border);border-radius:var(--rm);
+  background:var(--s1);border:1px solid var(--border);border-radius:var(--rm);
   padding:12px 16px;max-width:320px;pointer-events:auto;
-  box-shadow:var(--shadow);animation:slideIn .3s ease;
+  box-shadow:var(--shadow-lg);animation:slideIn .3s ease;
   display:flex;align-items:flex-start;gap:10px;
 }
 @keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
 .toast__icon{font-size:18px;flex-shrink:0;margin-top:1px}
-.toast__body{}
-.toast__title{font-weight:600;font-size:13px;margin-bottom:2px}
+.toast__title{font-weight:700;font-size:13px;margin-bottom:2px;color:var(--text)}
 .toast__sub{font-size:12px;color:var(--muted)}
-.toast.ok{border-left:3px solid var(--green)}
-.toast.dev{border-left:3px solid var(--amber)}
-.toast.done{border-left:3px solid var(--blue)}
+.toast.ok{border-left:4px solid var(--green)}
+.toast.dev{border-left:4px solid var(--amber)}
+.toast.done{border-left:4px solid var(--violet)}
+.toast.err{border-left:4px solid var(--rose)}
 
 /* ─── Detail modal ────────────────────────────────────────────────────────── */
 #modal{
-  position:fixed;inset:0;background:rgba(0,0,0,.7);
+  position:fixed;inset:0;background:rgba(15,23,42,.5);
   display:none;align-items:center;justify-content:center;
-  z-index:500;padding:16px;
+  z-index:500;padding:16px;backdrop-filter:blur(4px);
 }
 #modal.show{display:flex}
 .modal__box{
-  background:var(--s1);border:1px solid var(--border);border-radius:16px;
+  background:var(--s1);border:1px solid var(--border);border-radius:18px;
   width:min(480px,100%);max-height:90vh;overflow:hidden;display:flex;flex-direction:column;
-  box-shadow:0 24px 60px rgba(0,0,0,.7);animation:fadeUp .2s ease;
+  box-shadow:var(--shadow-lg);animation:fadeUp .2s ease;
 }
 .modal__head{
   display:flex;align-items:center;justify-content:space-between;
   padding:14px 18px;border-bottom:1px solid var(--border);
+  background:linear-gradient(135deg,var(--green-bg),var(--blue-bg));
 }
-.modal__title{font-size:15px;font-weight:700}
-.modal__close{background:transparent;border:none;font-size:18px;color:var(--muted);padding:4px}
-.modal__close:hover{color:var(--text);filter:none}
+.modal__title{font-size:15px;font-weight:800;color:var(--text)}
+.modal__close{background:var(--s3);border:1px solid var(--border);font-size:16px;color:var(--muted);padding:4px 8px;border-radius:8px}
+.modal__close:hover{color:var(--text);background:var(--border)}
 .modal__body{overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:14px}
 .modal__row{display:flex;flex-direction:column;gap:3px}
-.modal__row label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
-.modal__row span{font-size:14px}
-.modal__row a{font-size:14px}
+.modal__row label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.modal__row span{font-size:14px;color:var(--text)}
 .modal__divider{border:none;border-top:1px solid var(--border);margin:0}
 
 /* ─── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width:768px){
   html,body{overflow:auto}
   #splitWrap{flex-direction:column}
-  #mapPanel{height:50vh;position:relative;flex:none}
-  #listPanel{width:100%;border-left:none;border-top:1px solid var(--border);max-height:50vh}
+  #mapPanel{height:40vh;position:relative;flex:none;max-width:100%}
+  #listPanel{width:100%;border-left:none;border-top:1px solid var(--border);max-height:60vh;flex:none}
 }
 @media (max-width:480px){
   #kpiBar{padding:8px 10px}
@@ -361,9 +428,10 @@ header{
   header{padding:8px 12px}
 }
 
-/* ─── Leaflet attribution ─────────────────────────────────────────────────── */
-.leaflet-control-attribution{background:rgba(7,13,26,.8)!important;color:var(--muted)!important;font-size:9px!important}
+/* ─── Leaflet ─────────────────────────────────────────────────────────────── */
+.leaflet-control-attribution{background:rgba(255,255,255,.85)!important;color:var(--muted)!important;font-size:9px!important}
 .leaflet-control-attribution a{color:var(--muted)!important}
+.leaflet-bar a{background:var(--s1)!important;color:var(--text)!important;border-color:var(--border)!important}
 </style>
 </head>
 <body>
@@ -381,9 +449,9 @@ header{
 
     <div class="hdr__info">
       <span class="turno-pill" id="turnoPill" style="display:none"></span>
-      <span id="lblFecha" style="color:var(--subtle)"></span>
-      <span id="lblRepartidor" style="color:var(--muted)"></span>
-      <span id="lblUpd" style="color:var(--muted);font-size:12px"></span>
+      <span id="lblFecha"></span>
+      <span id="lblRepartidor"></span>
+      <span id="lblUpd" style="font-size:12px;opacity:.8"></span>
     </div>
 
     <div class="hdr__right">
@@ -392,37 +460,42 @@ header{
         <span id="connText">Conectando</span>
       </div>
       <button class="btn-notif" id="btnNotif" title="Activar notificaciones">🔔</button>
-      <button class="btn-install" id="btnInstall" style="display:none" title="Instalar como app">⬇ Instalar</button>
+      <button class="btn-install" id="btnInstall" style="display:none">⬇ Instalar</button>
     </div>
   </div>
 </header>
 
 <!-- ══════════════════════ KPIs ══════════════════════ -->
 <div id="kpiBar">
-  <div class="kpi">
-    <div class="kpi__label">Total pedidos</div>
+  <div class="kpi kpi--blue">
+    <div class="kpi__label">📦 Total pedidos</div>
     <div class="kpi__value" id="kTotal">—</div>
     <div class="kpi__sub" id="kTotalSub"></div>
   </div>
-  <div class="kpi kpi--ok">
-    <div class="kpi__label">Entregados</div>
+  <div class="kpi kpi--green">
+    <div class="kpi__label">✅ Entregados</div>
     <div class="kpi__value" id="kEntregados">—</div>
     <div class="kpi__sub" id="kDevSub"></div>
     <div class="kpi__spark"><div class="kpi__spark-fill" id="kEntSpark"></div></div>
   </div>
-  <div class="kpi kpi--blue">
-    <div class="kpi__label">Pendientes</div>
+  <div class="kpi kpi--amber">
+    <div class="kpi__label">⏳ Pendientes</div>
     <div class="kpi__value" id="kPendientes">—</div>
   </div>
-  <div class="kpi">
+  <div class="kpi kpi--violet">
+    <div class="kpi__label">⏱ Prom. entrega</div>
+    <div class="kpi__value" id="kAvgTime">—</div>
+    <div class="kpi__sub" id="kAvgSub">por parada</div>
+  </div>
+  <div class="kpi kpi--green">
     <div class="kpi__label">💵 Efectivo</div>
     <div class="kpi__value" id="kEfectivo">$ —</div>
   </div>
-  <div class="kpi">
-    <div class="kpi__label">💳 Transferencias</div>
+  <div class="kpi kpi--blue">
+    <div class="kpi__label">💳 Transf.</div>
     <div class="kpi__value" id="kTransf">$ —</div>
   </div>
-  <div class="kpi">
+  <div class="kpi kpi--slate">
     <div class="kpi__label">📝 Cheques</div>
     <div class="kpi__value" id="kCheque">$ —</div>
   </div>
@@ -447,17 +520,18 @@ header{
   <!-- ── Monitor view ── -->
   <div id="viewMonitor" class="view active">
     <div id="splitWrap">
-      <!-- Map -->
-      <div id="mapPanel">
-        <div id="map"></div>
-      </div>
-      <!-- List -->
+      <div id="mapPanel"><div id="map"></div></div>
       <div id="listPanel">
         <div id="listFilters">
-          <button class="filter-btn active" data-filter="todos">Todos</button>
-          <button class="filter-btn" data-filter="pendientes">⏳ Pendientes</button>
-          <button class="filter-btn" data-filter="entregados">✅ Entregados</button>
-          <button class="filter-btn" data-filter="devoluciones">♻️ Devoluciones</button>
+          <button class="filter-btn active f-todos" data-filter="todos">Todos</button>
+          <button class="filter-btn f-pendientes" data-filter="pendientes">⏳ Pendientes</button>
+          <button class="filter-btn f-entregados" data-filter="entregados">✅ Entregados</button>
+          <button class="filter-btn f-devoluciones" data-filter="devoluciones">♻️ Dev.</button>
+        </div>
+        <div id="avgStrip">
+          <span class="avg-label">⏱ Promedio hoy</span>
+          <span class="avg-value" id="avgStripValue"></span>
+          <span class="avg-detail" id="avgStripDetail"></span>
         </div>
         <div id="cardList">
           <div class="state-empty" id="emptyMonitor">
@@ -501,20 +575,14 @@ header{
 ═══════════════════════════════════════════════════════════════ */
 const SB_URL = 'https://gjeyvbidomxzofcdycya.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqZXl2Ymlkb214em9mY2R5Y3lhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzIyNzkzMCwiZXhwIjoyMDg4ODAzOTMwfQ.PDN9bfQxnD-COifvPFAbw_1ecAi57hxEFQ2aZDfDqZQ';
-const DISTRIB_ADDR = 'Languehein 1095, Longchamps, Buenos Aires, Argentina';
-const DISTRIB_COORDS = [-34.8907, -58.3967]; // fallback si Nominatim falla
+const DISTRIB_ADDR   = 'Languehein 1095, Longchamps, Buenos Aires, Argentina';
+const DISTRIB_COORDS = [-34.8907, -58.3967];
 
 /* ═══════════════════════════════════════════════════════════════
    STATE
 ═══════════════════════════════════════════════════════════════ */
 const state = {
-  pedidos:    [],
-  turno:      '',
-  fecha:      '',
-  repartidor: '',
-  lastUpdate: null,
-  filter:     'todos',
-  connected:  false,
+  pedidos: [], turno: '', fecha: '', repartidor: '', lastUpdate: null, filter: 'todos', connected: false,
 };
 
 /* ═══════════════════════════════════════════════════════════════
@@ -548,8 +616,8 @@ function buildPago(p) {
   if (p.formaPago2 && p.importe2 > 0) parts.push(`${p.formaPago2}: $${money(p.importe2)}`);
   return parts.join(' / ');
 }
+
 function calcKPIs(pedidos) {
-  // devolución = entregado pero cliente devolvió artículos → cuenta como visita completada
   const entregados   = pedidos.filter(p => p.entregado || p.devolucion).length;
   const pendientes   = pedidos.filter(p => !p.entregado && !p.devolucion).length;
   const devoluciones = pedidos.filter(p => p.devolucion).length;
@@ -564,7 +632,31 @@ function calcKPIs(pedidos) {
     add(p.formaPago1, p.importe1);
     add(p.formaPago2, p.importe2);
   });
-  return { total: pedidos.length, entregados, pendientes, devoluciones, efectivo, transferencia, cheque };
+  const avgTime = calcAvgDeliveryTime(pedidos);
+  return { total: pedidos.length, entregados, pendientes, devoluciones, efectivo, transferencia, cheque, avgTime };
+}
+
+function calcAvgDeliveryTime(pedidos) {
+  const delivered = pedidos
+    .filter(p => (p.entregado || p.devolucion) && p.horaEntrega)
+    .sort((a, b) => new Date(a.horaEntrega) - new Date(b.horaEntrega));
+  if (delivered.length < 2) return null;
+  let totalMs = 0;
+  for (let i = 1; i < delivered.length; i++) {
+    totalMs += new Date(delivered[i].horaEntrega) - new Date(delivered[i-1].horaEntrega);
+  }
+  return Math.round(totalMs / (delivered.length - 1) / 60000);
+}
+
+function calcAvgFromHistory(detalle) {
+  if (!Array.isArray(detalle) || detalle.length < 2) return null;
+  const withTs = detalle.filter(d => d.ts).sort((a,b) => new Date(a.ts) - new Date(b.ts));
+  if (withTs.length < 2) return null;
+  let total = 0;
+  for (let i = 1; i < withTs.length; i++) {
+    total += new Date(withTs[i].ts) - new Date(withTs[i-1].ts);
+  }
+  return Math.round(total / (withTs.length - 1) / 60000);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -588,14 +680,9 @@ async function loadToday() {
       if (error.code === '42P01') { showSetupState(); return; }
       throw error;
     }
-
-    // Prefer the most recent record; there might be Mañana + Tarde
     const rec = data?.[0];
-    if (rec) {
-      applySnapshot(rec);
-    } else {
-      showWaiting();
-    }
+    if (rec) applySnapshot(rec);
+    else showWaiting();
     setConn('ok', 'Tiempo real');
   } catch(e) {
     console.error(e);
@@ -621,7 +708,7 @@ function subscribeRealtime() {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   APPLY SNAPSHOT → re-render everything
+   APPLY SNAPSHOT
 ═══════════════════════════════════════════════════════════════ */
 function applySnapshot(rec) {
   state.pedidos    = Array.isArray(rec.pedidos) ? rec.pedidos : [];
@@ -629,7 +716,6 @@ function applySnapshot(rec) {
   state.fecha      = rec.fecha      || '';
   state.repartidor = rec.repartidor || '';
   state.lastUpdate = rec.updated_at;
-
   renderHeader();
   renderKPIs();
   renderList();
@@ -647,12 +733,10 @@ function renderHeader() {
     pill.style.display = '';
     pill.className = 'turno-pill ' + (turno.toLowerCase() === 'tarde' ? 'tarde' : '');
   }
-  $('lblFecha').textContent    = fecha ? fmtFechaLarga(fecha) : '';
+  $('lblFecha').textContent      = fecha ? fmtFechaLarga(fecha) : '';
   $('lblRepartidor').textContent = repartidor ? `· ${repartidor}` : '';
-  $('lblSub').textContent      = `Turno ${turno || '—'}`;
-  if (lastUpdate) {
-    $('lblUpd').textContent = `· Upd: ${fmtHora(lastUpdate) || ''}`;
-  }
+  $('lblSub').textContent        = `Turno ${turno || '—'}`;
+  if (lastUpdate) $('lblUpd').textContent = `· Upd: ${fmtHora(lastUpdate) || ''}`;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -661,27 +745,37 @@ function renderHeader() {
 function renderKPIs() {
   const k = calcKPIs(state.pedidos);
   $('kTotal').textContent      = k.total;
-  $('kTotalSub').textContent   = '';
   $('kEntregados').textContent = k.entregados;
   $('kDevSub').textContent     = k.devoluciones > 0 ? `${k.devoluciones} con devolución` : '';
   $('kPendientes').textContent = k.pendientes;
-  $('kEfectivo').textContent   = `$ ${money(k.efectivo)}`;
-  $('kTransf').textContent     = `$ ${money(k.transferencia)}`;
-  $('kCheque').textContent     = `$ ${money(k.cheque)}`;
 
-  // Spark bar
+  if (k.avgTime !== null) {
+    $('kAvgTime').textContent = `${k.avgTime} min`;
+    $('kAvgSub').textContent  = `entre paradas (${k.entregados} entregados)`;
+    const strip = $('avgStrip');
+    $('avgStripValue').textContent  = `${k.avgTime} min por parada`;
+    $('avgStripDetail').textContent = `Basado en ${k.entregados} entregas de hoy`;
+    strip.classList.add('show');
+  } else {
+    $('kAvgTime').textContent = '—';
+    $('kAvgSub').textContent  = 'por parada';
+    $('avgStrip').classList.remove('show');
+  }
+
+  $('kEfectivo').textContent = `$ ${money(k.efectivo)}`;
+  $('kTransf').textContent   = `$ ${money(k.transferencia)}`;
+  $('kCheque').textContent   = `$ ${money(k.cheque)}`;
+
   const pct = k.total > 0 ? Math.round(k.entregados / k.total * 100) : 0;
-  $('kEntSpark').style.width = pct + '%';
-
-  // Progress bar
+  $('kEntSpark').style.width   = pct + '%';
   $('progressFill').style.width = pct + '%';
   $('progressText').textContent = `Entregados ${k.entregados} de ${k.total}`;
   $('progressPct').textContent  = k.total > 0 ? pct + '%' : '';
-  document.getElementById('progressSection').style.display = k.total > 0 ? '' : 'none';
+  $('progressSection').style.display = k.total > 0 ? '' : 'none';
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   LIST
+   LIST with delivery interval separators
 ═══════════════════════════════════════════════════════════════ */
 function renderList() {
   const list = $('cardList');
@@ -694,18 +788,16 @@ function renderList() {
   }
 
   const filter = state.filter;
-  let filtered = pedidos;
-  if (filter === 'pendientes')  filtered = pedidos.filter(p => !p.entregado && !p.devolucion);
-  if (filter === 'entregados')  filtered = pedidos.filter(p => p.entregado && !p.devolucion);
-  if (filter === 'devoluciones')filtered = pedidos.filter(p => p.devolucion);
+  let filtered = [...pedidos];
+  if (filter === 'pendientes')   filtered = pedidos.filter(p => !p.entregado && !p.devolucion);
+  if (filter === 'entregados')   filtered = pedidos.filter(p => p.entregado && !p.devolucion);
+  if (filter === 'devoluciones') filtered = pedidos.filter(p => p.devolucion);
 
-  // Sort: delivered by horaEntrega asc, then pending by orden
-  filtered = [...filtered].sort((a, b) => {
-    const done_a = a.entregado || a.devolucion;
-    const done_b = b.entregado || b.devolucion;
-    if (done_a && !done_b) return -1;
-    if (!done_a && done_b) return 1;
-    if (done_a && done_b) {
+  filtered.sort((a, b) => {
+    const da = a.entregado || a.devolucion, db = b.entregado || b.devolucion;
+    if (da && !db) return -1;
+    if (!da && db) return 1;
+    if (da && db) {
       const ta = a.horaEntrega ? new Date(a.horaEntrega).getTime() : 0;
       const tb = b.horaEntrega ? new Date(b.horaEntrega).getTime() : 0;
       return ta - tb;
@@ -713,27 +805,42 @@ function renderList() {
     return (a.orden||999) - (b.orden||999);
   });
 
-  list.innerHTML = '';
+  // Build interval map for delivered items
+  const deliveredSorted = filtered
+    .filter(p => (p.entregado || p.devolucion) && p.horaEntrega)
+    .sort((a, b) => new Date(a.horaEntrega) - new Date(b.horaEntrega));
 
+  const intervalMap = new Map();
+  for (let i = 1; i < deliveredSorted.length; i++) {
+    const diff = Math.round(
+      (new Date(deliveredSorted[i].horaEntrega) - new Date(deliveredSorted[i-1].horaEntrega)) / 60000
+    );
+    if (diff >= 0) intervalMap.set(deliveredSorted[i].numeroCliente, diff);
+  }
+
+  list.innerHTML = '';
   if (!filtered.length) {
     list.appendChild(createEmptyState('🔍', 'Sin resultados', 'No hay pedidos en esta categoría.'));
     return;
   }
 
   filtered.forEach((p, idx) => {
-    const card = createCard(p, idx + 1);
-    list.appendChild(card);
+    const interval = intervalMap.get(p.numeroCliente);
+    if (interval !== undefined && (filter === 'todos' || filter === 'entregados' || filter === 'devoluciones')) {
+      const sep = el('div', 'interval-sep');
+      sep.innerHTML = `<div class="interval-line"></div><div class="interval-badge">⏱ ${interval} min</div><div class="interval-line"></div>`;
+      list.appendChild(sep);
+    }
+    list.appendChild(createCard(p, idx + 1));
   });
 }
 
 function createCard(p, n) {
-  const isEnt = p.entregado && !p.devolucion;
-  const isDev = p.devolucion;
-  const isPend = !p.entregado && !p.devolucion;
-
-  const cls = isEnt ? 'is-entregado' : isDev ? 'is-devolucion' : 'is-pendiente';
-  const pago = buildPago(p);
-  const hora = fmtHora(p.horaEntrega);
+  const isEnt  = p.entregado && !p.devolucion;
+  const isDev  = p.devolucion;
+  const pago   = buildPago(p);
+  const hora   = fmtHora(p.horaEntrega);
+  const cls    = isEnt ? 'is-entregado' : isDev ? 'is-devolucion' : 'is-pendiente';
 
   const card = el('div', `d-card ${cls}`);
   card.innerHTML = `
@@ -741,13 +848,13 @@ function createCard(p, n) {
       <div class="d-card__num">${n}</div>
       <div>
         <div class="d-card__name">Nº ${p.numeroCliente} — ${p.nombre}</div>
-        <div class="d-card__loc">${p.localidad || ''}</div>
+        <div class="d-card__loc">📍 ${p.localidad || ''}</div>
       </div>
     </div>
     <div class="d-card__rows">
-      ${hora ? `<div class="d-card__row">⏱ <strong>${hora}</strong></div>` : ''}
-      ${pago  ? `<div class="d-card__row">💳 ${pago}</div>` : ''}
-      ${p.notasDevolucion ? `<div class="d-card__row" style="color:var(--amber)">📝 ${p.notasDevolucion}</div>` : ''}
+      ${hora ? `<div class="d-card__row">🕐 <strong>${hora}</strong></div>` : ''}
+      ${pago ? `<div class="d-card__row">💳 ${pago}</div>` : ''}
+      ${p.notasDevolucion ? `<div class="d-card__row" style="color:var(--amber-d);font-weight:600">📝 ${p.notasDevolucion}</div>` : ''}
     </div>
     <div class="d-card__bottom">
       <span class="d-card__importe">$ ${money(p.importeTotal)}</span>
@@ -767,7 +874,7 @@ function createEmptyState(icon, title, sub) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   MAP
+   MAP (CartoDB Positron — light tiles)
 ═══════════════════════════════════════════════════════════════ */
 let mapInst = null, distribMark = null, routeLayer = null;
 const mkCache = {};
@@ -778,26 +885,16 @@ let distribCoords = null;
 
 function initMap() {
   mapInst = L.map('map', { zoomControl: true, attributionControl: true });
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com">CARTO</a>',
     maxZoom: 19,
   }).addTo(mapInst);
-
   mapInst.setView(DISTRIB_COORDS, 12);
-
-  // Add distribuidora marker
   distribMark = L.marker(DISTRIB_COORDS, { icon: mkIcon('base', '🏭'), zIndexOffset: 1000 })
     .bindPopup(`<div class="pop-title">🏭 Distribuidora</div><div class="pop-name">${DISTRIB_ADDR}</div>`)
     .addTo(mapInst);
   distribCoords = DISTRIB_COORDS;
-
-  // Try to geocode distribuidora for accuracy
-  geocodeAddr(DISTRIB_ADDR).then(coords => {
-    if (coords) {
-      distribCoords = coords;
-      distribMark.setLatLng(coords);
-    }
-  });
+  geocodeAddr(DISTRIB_ADDR).then(coords => { if (coords) { distribCoords = coords; distribMark.setLatLng(coords); } });
 }
 
 function mkIcon(type, symbol) {
@@ -816,8 +913,6 @@ function scheduleMapUpdate() {
 
 async function updateMap() {
   if (!mapInst) return;
-
-  // Clear existing pedido markers and route
   Object.values(mkCache).forEach(m => { try { mapInst.removeLayer(m); } catch {} });
   Object.keys(mkCache).forEach(k => delete mkCache[k]);
   if (routeLayer) { mapInst.removeLayer(routeLayer); routeLayer = null; }
@@ -826,30 +921,23 @@ async function updateMap() {
   if (!pedidos.length) return;
 
   const positioned = [];
-
-  // Process in order, with small delay between Nominatim calls
   for (const p of pedidos) {
     const coords = await getCoords(p);
     if (coords) positioned.push({ p, coords });
   }
-
   if (!positioned.length) return;
 
-  // Place markers
   positioned.forEach(({ p, coords }) => {
     const isEnt  = p.entregado && !p.devolucion;
     const isDev  = p.devolucion;
     const type   = isEnt ? 'ok' : isDev ? 'dev' : 'pend';
     const symbol = isEnt ? '✓' : isDev ? '♻' : String(p.orden || '?');
-
     const mk = L.marker(coords, { icon: mkIcon(type, symbol) })
       .bindPopup(buildPopup(p), { maxWidth: 220 })
       .addTo(mapInst);
-
     mkCache[p.numeroCliente] = mk;
   });
 
-  // Draw route: connect delivered in order of horaEntrega
   const done = positioned
     .filter(({ p }) => p.entregado || p.devolucion)
     .sort((a, b) => {
@@ -860,27 +948,21 @@ async function updateMap() {
 
   if (done.length > 0) {
     const pts = [distribCoords || DISTRIB_COORDS, ...done.map(({ coords }) => coords)];
-    routeLayer = L.polyline(pts, {
-      color: '#22c55e', weight: 2.5, opacity: .65, dashArray: null,
-    }).addTo(mapInst);
+    routeLayer = L.polyline(pts, { color: '#10b981', weight: 3, opacity: .75 }).addTo(mapInst);
   }
 
-  // Fit bounds
   const allPts = positioned.map(({ coords }) => coords);
   allPts.push(distribCoords || DISTRIB_COORDS);
-  if (allPts.length > 1) {
-    mapInst.fitBounds(allPts, { padding: [40, 40], maxZoom: 14 });
-  }
+  if (allPts.length > 1) mapInst.fitBounds(allPts, { padding: [40, 40], maxZoom: 14 });
 }
 
 function buildPopup(p) {
-  const isEnt = p.entregado && !p.devolucion;
-  const isDev = p.devolucion;
+  const isEnt  = p.entregado && !p.devolucion;
+  const isDev  = p.devolucion;
   const estado = isEnt ? '✅ Entregado' : isDev ? '♻️ Devolución' : '⏳ Pendiente';
-  const color  = isEnt ? '#22c55e' : isDev ? '#f59e0b' : '#6b87b0';
+  const color  = isEnt ? '#059669' : isDev ? '#d97706' : '#64748b';
   const hora   = fmtHora(p.horaEntrega);
   const pago   = buildPago(p);
-
   return `
     <div class="pop-title">Nº ${p.numeroCliente}</div>
     <div class="pop-name">${p.nombre}</div>
@@ -890,20 +972,16 @@ function buildPopup(p) {
     ${hora  ? `<div class="pop-row">⏱ ${hora}</div>` : ''}
     ${pago  ? `<div class="pop-row">💳 ${pago}</div>` : ''}
     <div class="pop-row" style="margin-top:4px">Importe: <strong>$${money(p.importeTotal)}</strong></div>
-    ${p.notasDevolucion ? `<div class="pop-row" style="color:#f59e0b">📝 ${p.notasDevolucion}</div>` : ''}
+    ${p.notasDevolucion ? `<div class="pop-row" style="color:#d97706;font-weight:600">📝 ${p.notasDevolucion}</div>` : ''}
     ${p.comprobanteId ? `<div class="pop-row"><a href="https://drive.google.com/uc?id=${p.comprobanteId}&export=view" target="_blank">📷 Ver comprobante</a></div>` : ''}
   `;
 }
 
-/* ── Geocoding ────────────────────────────────────────────────── */
 async function getCoords(p) {
-  // Use existing coordinates when available
   const fromField = parseCoords(p.coordenadas);
   if (fromField) return fromField;
-
   const key = `${p.domicilio}||${p.localidad}`;
   if (geocodeCache[key]) return geocodeCache[key];
-
   const coords = await geocodeAddr(`${p.domicilio}, ${p.localidad}, Buenos Aires, Argentina`);
   if (coords) {
     geocodeCache[key] = coords;
@@ -914,7 +992,7 @@ async function getCoords(p) {
 
 async function geocodeAddr(address) {
   try {
-    await sleep(200); // Respect Nominatim 1 req/s limit
+    await sleep(200);
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=ar&accept-language=es`;
     const res = await fetch(url, { headers: { 'User-Agent': 'MonitorReparto/1.0' } });
     const data = await res.json();
@@ -927,11 +1005,10 @@ async function geocodeAddr(address) {
    MODAL DETALLE
 ═══════════════════════════════════════════════════════════════ */
 function openModal(p) {
-  const isEnt  = p.entregado && !p.devolucion;
-  const isDev  = p.devolucion;
-  const hora   = fmtHora(p.horaEntrega);
-  const pago   = buildPago(p);
-
+  const isEnt = p.entregado && !p.devolucion;
+  const isDev = p.devolucion;
+  const hora  = fmtHora(p.horaEntrega);
+  const pago  = buildPago(p);
   $('modalTitle').textContent = `Nº ${p.numeroCliente} — ${p.nombre}`;
   $('modalBody').innerHTML = `
     <div class="modal__row"><label>Cliente</label><span>${p.nombre}</span></div>
@@ -943,30 +1020,26 @@ function openModal(p) {
         ${isEnt ? '✅ Entregado' : isDev ? '♻️ Devolución' : '⏳ Pendiente'}
       </span>
     </div>
-    ${hora ? `<div class="modal__row"><label>Hora de entrega</label><span>⏱ ${hora}</span></div>` : ''}
+    ${hora ? `<div class="modal__row"><label>Hora de entrega</label><span>🕐 ${hora}</span></div>` : ''}
     <div class="modal__row"><label>Importe factura</label><span>$ ${money(p.importeTotal)}</span></div>
     ${pago ? `<div class="modal__row"><label>Forma de pago</label><span>${pago}</span></div>` : ''}
-    ${p.notasDevolucion ? `<div class="modal__row"><label>Notas</label><span style="color:var(--amber)">${p.notasDevolucion}</span></div>` : ''}
+    ${p.notasDevolucion ? `<div class="modal__row"><label>Notas devolución</label><span style="color:var(--amber-d);font-weight:600">${p.notasDevolucion}</span></div>` : ''}
     <hr class="modal__divider"/>
     <div class="modal__row"><label>Orden de entrega</label><span>${p.orden || '—'}</span></div>
     ${p.comprobanteId ? `<div class="modal__row"><label>Comprobante</label><a href="https://drive.google.com/uc?id=${p.comprobanteId}&export=view" target="_blank" rel="noopener">📷 Ver foto del comprobante</a></div>` : ''}
     ${p.coordenadas ? `<div class="modal__row"><label>Coordenadas</label><a href="https://maps.google.com/?q=${p.coordenadas}" target="_blank">📍 Ver en Google Maps</a></div>` : ''}
   `;
   $('modal').classList.add('show');
-  $('modal').setAttribute('aria-hidden', 'false');
 }
-function closeModal() {
-  $('modal').classList.remove('show');
-  $('modal').setAttribute('aria-hidden', 'true');
-}
+function closeModal() { $('modal').classList.remove('show'); }
 $('btnModalClose').onclick = closeModal;
 $('modal').addEventListener('click', e => { if (e.target === $('modal')) closeModal(); });
 
 /* ═══════════════════════════════════════════════════════════════
-   HISTORIAL
+   HISTORIAL with avg delivery time
 ═══════════════════════════════════════════════════════════════ */
 async function loadHistory() {
-  $('histContent').innerHTML = `<div class="hist-empty">Cargando historial…</div>`;
+  $('histContent').innerHTML = `<div class="hist-empty">⏳ Cargando historial…</div>`;
   try {
     const { data, error } = await sb
       .from('rendiciones_reparto')
@@ -974,11 +1047,10 @@ async function loadHistory() {
       .order('fecha', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(40);
-
     if (error) throw error;
     renderHistory(data || []);
   } catch(e) {
-    $('histContent').innerHTML = `<div class="hist-empty">Error al cargar: ${e.message}</div>`;
+    $('histContent').innerHTML = `<div class="hist-empty">⚠️ Error al cargar: ${e.message}</div>`;
   }
 }
 
@@ -987,10 +1059,36 @@ function renderHistory(rends) {
     $('histContent').innerHTML = `<div class="hist-empty">📚 Sin rendiciones en Supabase aún.</div>`;
     return;
   }
-  $('histContent').innerHTML = rends.map((r, i) => {
+
+  // Overall avg time across all rendiciones
+  let allAvgs = [];
+  rends.forEach(r => {
+    const avg = calcAvgFromHistory(r.detalle_clientes);
+    if (avg !== null) allAvgs.push(avg);
+  });
+  const globalAvg = allAvgs.length > 0 ? Math.round(allAvgs.reduce((a,b) => a+b, 0) / allAvgs.length) : null;
+
+  const summaryHtml = globalAvg !== null ? `
+    <div class="h-summary">
+      <div class="h-summary__stat">
+        <div class="h-summary__label">⏱ Promedio histórico</div>
+        <div class="h-summary__val">${globalAvg} min por parada</div>
+      </div>
+      <div class="h-summary__stat">
+        <div class="h-summary__label">📋 Rendiciones</div>
+        <div class="h-summary__val">${rends.length}</div>
+      </div>
+      <div class="h-summary__stat">
+        <div class="h-summary__label">📦 Turnos registrados</div>
+        <div class="h-summary__val">${rends.reduce((s,r) => s + (Array.isArray(r.detalle_clientes) ? r.detalle_clientes.length : 0), 0)} pedidos</div>
+      </div>
+    </div>` : '';
+
+  $('histContent').innerHTML = summaryHtml + rends.map((r, i) => {
     const det     = Array.isArray(r.detalle_clientes) ? r.detalle_clientes : [];
     const devs    = det.filter(d => d.devolucion).length;
-    const turnoLow= (r.turno||'').toLowerCase();
+    const turnoLow = (r.turno||'').toLowerCase();
+    const avg     = calcAvgFromHistory(det);
     return `
       <div class="h-card">
         <div class="h-card__head" onclick="toggleHist(${i})">
@@ -999,11 +1097,12 @@ function renderHistory(rends) {
           </div>
           <div class="h-card__info">
             <div class="h-card__title">${fmtFechaLarga(r.fecha)}</div>
-            <div class="h-card__sub">${r.repartidor || '—'} · ${det.length} pedidos${devs > 0 ? ` · ${devs} devolucion${devs>1?'es':''}` : ''}</div>
+            <div class="h-card__sub">${r.repartidor || '—'} · ${det.length} pedidos${devs > 0 ? ` · ${devs} dev.` : ''}</div>
           </div>
           <div class="h-card__totals">
-            <div class="h-card__total-line">💵 $${money(r.efectivo)} · 💳 $${money(r.transferencia)}${r.cheque>0 ? ` · 📝 $${money(r.cheque)}` : ''}</div>
+            <div class="h-card__total-line">💵 $${money(r.efectivo)} · 💳 $${money(r.transferencia)}</div>
             <div class="h-card__grand">$ ${money(r.total)}</div>
+            ${avg !== null ? `<div class="h-card__avg">⏱ ${avg} min/parada</div>` : ''}
           </div>
           <span class="h-card__chevron" id="chev-${i}">▼</span>
         </div>
@@ -1019,7 +1118,7 @@ function renderHistory(rends) {
                   <td>${d.nombre||'—'}</td>
                   <td>${d.localidad||'—'}</td>
                   <td>$ ${money(d.totalPagado||(d.importe1||0)+(d.importe2||0))}</td>
-                  <td><span class="tbl-pill ${d.devolucion?'dev':'ok'}">${d.devolucion?'Devolución':'Entregado'}</span></td>
+                  <td><span class="tbl-pill ${d.devolucion?'dev':'ok'}">${d.devolucion?'♻️ Dev.':'✅ Entregado'}</span></td>
                 </tr>`).join('')}
             </tbody>
           </table>
@@ -1036,21 +1135,16 @@ function toggleHist(i) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   NOTIFICATIONS + CHANGE DETECTION
+   NOTIFICATIONS
 ═══════════════════════════════════════════════════════════════ */
 function detectAndNotify(prev, next) {
   const prevMap = new Map(prev.map(p => [p.numeroCliente, p]));
-
-  let newlyDone = 0;
   next.forEach(p => {
     const old = prevMap.get(p.numeroCliente);
     if (!old) return;
-
-    const wasEnt  = old.entregado || old.devolucion;
-    const nowEnt  = p.entregado   || p.devolucion;
-
+    const wasEnt = old.entregado || old.devolucion;
+    const nowEnt = p.entregado   || p.devolucion;
     if (!wasEnt && nowEnt) {
-      newlyDone++;
       if (p.devolucion) {
         toast('dev', '♻️ Devolución', `${p.nombre} — ${p.localidad}`);
         notif('♻️ Devolución', `${p.nombre} — ${p.localidad}`, 'dev');
@@ -1060,8 +1154,6 @@ function detectAndNotify(prev, next) {
       }
     }
   });
-
-  // All done celebration
   if (next.length > 0 && next.every(p => p.entregado || p.devolucion)) {
     const prevDone = prev.length > 0 && prev.every(p => p.entregado || p.devolucion);
     if (!prevDone) {
@@ -1082,25 +1174,20 @@ function toast(type, title, sub) {
 
 function notif(title, body, tag) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
-  try { new Notification(title, { body, icon: './icons/icon-192.png', tag, badge: './icons/icon-192.png', vibrate: [200,100,200] }); } catch {}
+  try { new Notification(title, { body, icon: './icons/icon-192.png', tag }); } catch {}
 }
 
 async function requestNotif() {
   if (!('Notification' in window)) { alert('Tu navegador no soporta notificaciones.'); return; }
   const perm = await Notification.requestPermission();
-  if (perm === 'granted') {
-    $('btnNotif').textContent = '🔔';
-    $('btnNotif').title = 'Notificaciones activas';
-    toast('ok', '🔔 Notificaciones activadas', 'Recibirás alertas de cada entrega.');
-  }
+  if (perm === 'granted') toast('ok', '🔔 Notificaciones activadas', 'Recibirás alertas de cada entrega.');
 }
 
 /* ═══════════════════════════════════════════════════════════════
    CONNECTION STATUS
 ═══════════════════════════════════════════════════════════════ */
 function setConn(type, text) {
-  const dot = $('connDot');
-  dot.className = 'conn__dot ' + (type === 'ok' ? 'ok' : type === 'err' ? 'err' : 'sync');
+  $('connDot').className = 'conn__dot ' + (type === 'ok' ? 'ok' : type === 'err' ? 'err' : 'sync');
   $('connText').textContent = text;
 }
 
@@ -1110,7 +1197,7 @@ function setConn(type, text) {
 function showWaiting() {
   setConn('ok', 'Conectado');
   $('cardList').innerHTML = '';
-  $('cardList').appendChild(createEmptyState('🚚', 'Esperando el reparto…', 'El monitor se actualizará automáticamente cuando el repartidor comience a entregar.'));
+  $('cardList').appendChild(createEmptyState('🚚', 'Esperando el reparto…', 'El monitor se actualizará automáticamente cuando el repartidor comience.'));
 }
 
 function showSetupState() {
@@ -1120,24 +1207,22 @@ function showSetupState() {
   d.style.cssText = 'padding:16px;color:var(--subtle);font-size:13px;line-height:1.7';
   d.innerHTML = `
     <div style="font-size:22px;margin-bottom:10px">⚙️</div>
-    <div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:12px">Configuración requerida — 3 pasos</div>
+    <div style="font-weight:800;font-size:15px;color:var(--text);margin-bottom:12px">Configuración requerida — 3 pasos</div>
     <div style="display:flex;flex-direction:column;gap:10px">
-      <div style="background:var(--s3);border:1px solid var(--border);border-radius:10px;padding:12px">
-        <div style="font-weight:700;color:var(--text);margin-bottom:4px">1. Crear tabla en Supabase</div>
-        <div>Supabase Dashboard → <strong>SQL Editor</strong> → New Query → pegar y ejecutar <code style="background:var(--bg);padding:1px 5px;border-radius:4px">schema.sql</code></div>
+      <div style="background:var(--green-bg);border:1px solid var(--green-border);border-radius:10px;padding:12px">
+        <div style="font-weight:700;color:var(--green-d);margin-bottom:4px">1. Crear tabla en Supabase</div>
+        <div>SQL Editor → New Query → pegar y ejecutar <code>schema.sql</code></div>
       </div>
-      <div style="background:var(--s3);border:1px solid var(--border);border-radius:10px;padding:12px">
-        <div style="font-weight:700;color:var(--text);margin-bottom:4px">2. Cargar datos actuales del reparto</div>
-        <div>En el editor de Apps Script → agregar la función <code style="background:var(--bg);padding:1px 5px;border-radius:4px">seedRepartoEnCursoAhora()</code> de <code style="background:var(--bg);padding:1px 5px;border-radius:4px">gas-realtime.js</code> → ejecutarla directamente desde el editor (sin desplegar).</div>
+      <div style="background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:10px;padding:12px">
+        <div style="font-weight:700;color:var(--blue-d);margin-bottom:4px">2. Cargar datos del turno actual</div>
+        <div>Editor GAS → ejecutar <code>seedRepartoEnCursoAhora()</code></div>
       </div>
-      <div style="background:var(--s3);border:1px solid var(--border);border-radius:10px;padding:12px">
-        <div style="font-weight:700;color:var(--text);margin-bottom:4px">3. Agregar actualización automática al GAS</div>
-        <div>En <code style="background:var(--bg);padding:1px 5px;border-radius:4px">guardarDatosReparto()</code>, después de <code style="background:var(--bg);padding:1px 5px;border-radius:4px">SpreadsheetApp.flush()</code>, agregar:<br><code style="background:var(--bg);padding:2px 7px;border-radius:4px;color:var(--green)">actualizarRepartoEnCurso_(hoja, datosParaEscribir);</code><br>→ Guardar y republicar deployment.</div>
+      <div style="background:var(--violet-bg);border:1px solid var(--violet-border);border-radius:10px;padding:12px">
+        <div style="font-weight:700;color:var(--violet);margin-bottom:4px">3. Agregar actualización automática</div>
+        <div>En <code>guardarDatosReparto()</code> después de <code>flush()</code>:<br><code style="color:var(--green-d)">actualizarRepartoEnCurso_(hoja, datosParaEscribir);</code></div>
       </div>
-    </div>
-    <div style="margin-top:12px;color:var(--muted);font-size:12px">Una vez completados, recargá esta página. Los datos aparecerán en tiempo real.</div>`;
+    </div>`;
   $('cardList').appendChild(d);
-  toast('err', '⚙️ Tabla no encontrada en Supabase', 'Ver instrucciones en el panel izquierdo.');
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1173,9 +1258,7 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
 ═══════════════════════════════════════════════════════════════ */
 let deferredPrompt = null;
 window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault();
-  deferredPrompt = e;
-  $('btnInstall').style.display = '';
+  e.preventDefault(); deferredPrompt = e; $('btnInstall').style.display = '';
 });
 $('btnInstall').addEventListener('click', async () => {
   if (!deferredPrompt) return;
@@ -1184,16 +1267,6 @@ $('btnInstall').addEventListener('click', async () => {
   if (outcome === 'accepted') $('btnInstall').style.display = 'none';
   deferredPrompt = null;
 });
-window.addEventListener('appinstalled', () => { $('btnInstall').style.display = 'none'; });
-
-/* ═══════════════════════════════════════════════════════════════
-   SERVICE WORKER
-═══════════════════════════════════════════════════════════════ */
-function registerSW() {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(e => console.warn('SW:', e));
-  }
-}
 
 /* ═══════════════════════════════════════════════════════════════
    KEYBOARD SHORTCUTS
@@ -1208,22 +1281,15 @@ document.addEventListener('keydown', e => {
    INIT
 ═══════════════════════════════════════════════════════════════ */
 $('btnNotif').addEventListener('click', requestNotif);
-if (Notification.permission === 'granted') $('btnNotif').title = 'Notificaciones activas';
 
 document.addEventListener('DOMContentLoaded', () => {
   initMap();
   loadToday();
   subscribeRealtime();
-  registerSW();
-
-  // Auto-refresh every 30s as fallback
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
   setInterval(loadToday, 30_000);
-
-  // URL param shortcut
   const params = new URLSearchParams(location.search);
-  if (params.get('tab') === 'historial') {
-    document.querySelector('[data-tab="historial"]')?.click();
-  }
+  if (params.get('tab') === 'historial') document.querySelector('[data-tab="historial"]')?.click();
 });
 </script>
 </body>
