@@ -1,15 +1,56 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // MONITOR EN TIEMPO REAL — Snippet para CodigoGS
 //
-// PASO 1: Copiar la función actualizarRepartoEnCurso_() al final del bloque
-//         "SUPABASE — GUARDAR RENDICIÓN" en CodigoGS
+// ── SETUP INICIAL (hacer 1 sola vez) ────────────────────────────────────────
 //
-// PASO 2: En guardarDatosReparto(), AGREGAR esta línea al final,
-//         justo después de SpreadsheetApp.flush():
+// PASO 1: Crear la tabla en Supabase
+//   → Supabase Dashboard → SQL Editor → New Query → pegar schema.sql → Run
 //
+// PASO 2: Copiar TODAS las funciones de este archivo al CodigoGS
+//   → Agregar al final del bloque "SUPABASE — GUARDAR RENDICIÓN"
+//
+// PASO 3: Cargar los datos ACTUALES del turno en curso (solo la primera vez)
+//   → En el editor GAS: seleccionar "seedRepartoEnCursoAhora" → Ejecutar
+//   → Esto carga el estado actual del RepartoDelDia en Supabase de inmediato
+//   → El monitor mostrará los datos al recargar la página
+//
+// PASO 4: Conectar actualización automática
+//   → En guardarDatosReparto(), justo después de SpreadsheetApp.flush():
 //         actualizarRepartoEnCurso_(hoja, datosParaEscribir);
+//   → Guardar y republicar el deployment (nueva versión)
+//
+// ── DESDE ESE MOMENTO: cada save del repartidor → Supabase → Monitor live ──
+// ═══════════════════════════════════════════════════════════════════════════
 //
 // ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * FUNCIÓN DE CARGA INICIAL — Ejecutar 1 vez desde el editor GAS
+ * Carga el estado actual de RepartoDelDia en Supabase de inmediato.
+ * No requiere nuevo deployment. Solo pegar y ejecutar.
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+function seedRepartoEnCursoAhora() {
+  try {
+    var ss    = SpreadsheetApp.openById(ID_REPARTO_ACTIVO);
+    var hoja  = ss.getSheetByName('RepartoDelDia');
+
+    if (!hoja || hoja.getLastRow() < 3) {
+      Logger.log('⚠️ RepartoDelDia está vacía. No hay datos que cargar.');
+      return;
+    }
+
+    var filas = hoja.getRange(3, 1, hoja.getLastRow() - 2, 18).getValues();
+    Logger.log('📋 Leyendo ' + filas.length + ' filas de RepartoDelDia…');
+
+    actualizarRepartoEnCurso_(hoja, filas);
+
+    Logger.log('✅ SEED COMPLETADO. Recargá el monitor — los datos deberían aparecer.');
+  } catch(e) {
+    Logger.log('❌ seedRepartoEnCursoAhora error: ' + e.message);
+  }
+}
 
 /**
  * Actualiza la tabla reparto_en_curso en Supabase con el estado actual

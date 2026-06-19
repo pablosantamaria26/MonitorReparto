@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="theme-color" content="#0d1526"/>
 <meta name="description" content="Monitor de Reparto en tiempo real — Mercado Limpio"/>
+<meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Monitor"/>
@@ -1113,10 +1114,30 @@ function showWaiting() {
 }
 
 function showSetupState() {
-  setConn('err', 'Configuración pendiente');
+  setConn('err', 'Tabla no existe aún');
   $('cardList').innerHTML = '';
-  $('cardList').appendChild(createEmptyState('⚙️', 'Configuración pendiente', 'Ejecutar schema.sql en Supabase y agregar el snippet gas-realtime.js al CodigoGS.'));
-  toast('err', '⚙️ Tabla no encontrada', 'Ejecutar schema.sql en Supabase primero.');
+  const d = document.createElement('div');
+  d.style.cssText = 'padding:16px;color:var(--subtle);font-size:13px;line-height:1.7';
+  d.innerHTML = `
+    <div style="font-size:22px;margin-bottom:10px">⚙️</div>
+    <div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:12px">Configuración requerida — 3 pasos</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="background:var(--s3);border:1px solid var(--border);border-radius:10px;padding:12px">
+        <div style="font-weight:700;color:var(--text);margin-bottom:4px">1. Crear tabla en Supabase</div>
+        <div>Supabase Dashboard → <strong>SQL Editor</strong> → New Query → pegar y ejecutar <code style="background:var(--bg);padding:1px 5px;border-radius:4px">schema.sql</code></div>
+      </div>
+      <div style="background:var(--s3);border:1px solid var(--border);border-radius:10px;padding:12px">
+        <div style="font-weight:700;color:var(--text);margin-bottom:4px">2. Cargar datos actuales del reparto</div>
+        <div>En el editor de Apps Script → agregar la función <code style="background:var(--bg);padding:1px 5px;border-radius:4px">seedRepartoEnCursoAhora()</code> de <code style="background:var(--bg);padding:1px 5px;border-radius:4px">gas-realtime.js</code> → ejecutarla directamente desde el editor (sin desplegar).</div>
+      </div>
+      <div style="background:var(--s3);border:1px solid var(--border);border-radius:10px;padding:12px">
+        <div style="font-weight:700;color:var(--text);margin-bottom:4px">3. Agregar actualización automática al GAS</div>
+        <div>En <code style="background:var(--bg);padding:1px 5px;border-radius:4px">guardarDatosReparto()</code>, después de <code style="background:var(--bg);padding:1px 5px;border-radius:4px">SpreadsheetApp.flush()</code>, agregar:<br><code style="background:var(--bg);padding:2px 7px;border-radius:4px;color:var(--green)">actualizarRepartoEnCurso_(hoja, datosParaEscribir);</code><br>→ Guardar y republicar deployment.</div>
+      </div>
+    </div>
+    <div style="margin-top:12px;color:var(--muted);font-size:12px">Una vez completados, recargá esta página. Los datos aparecerán en tiempo real.</div>`;
+  $('cardList').appendChild(d);
+  toast('err', '⚙️ Tabla no encontrada en Supabase', 'Ver instrucciones en el panel izquierdo.');
 }
 
 /* ═══════════════════════════════════════════════════════════════
