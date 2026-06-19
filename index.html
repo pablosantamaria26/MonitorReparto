@@ -1253,7 +1253,7 @@ function renderHistory(rends, reportMap = new Map()) {
     const aiRep    = reportMap.get(`${r.fecha}_${r.turno}`);
     if (aiRep?.reporte_ia) {
       window._aiReports[i] = {
-        text: aiRep.reporte_ia + (aiRep.ruta_optima ? '\n\n── Ruta sugerida ──\n' + aiRep.ruta_optima : ''),
+        text: aiRep.reporte_ia,
         sub:  `${fmtFechaLarga(r.fecha)} · Turno ${r.turno} · ${r.repartidor || '—'}`,
       };
     }
