@@ -1043,9 +1043,8 @@ async function loadHistory() {
   try {
     const { data, error } = await sb
       .from('rendiciones_reparto')
-      .select('fecha,turno,repartidor,efectivo,transferencia,cheque,total,detalle_clientes,created_at')
+      .select('fecha,turno,repartidor,efectivo,transferencia,cheque,total,detalle_clientes')
       .order('fecha', { ascending: false })
-      .order('created_at', { ascending: false })
       .limit(40);
     if (error) throw error;
     renderHistory(data || []);
