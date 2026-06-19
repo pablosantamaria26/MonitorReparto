@@ -1205,7 +1205,10 @@ async function loadHistory() {
     ]);
     if (e1) throw e1;
     const reportMap = new Map();
-    (reportes || []).forEach(r => reportMap.set(`${r.fecha}_${r.turno}`, r));
+    (reportes || []).forEach(r => {
+      const k = `${r.fecha}_${r.turno}`;
+      if (!reportMap.has(k)) reportMap.set(k, r); // primera = más reciente (created_at desc)
+    });
     renderHistory(rends || [], reportMap);
   } catch(e) {
     $('histContent').innerHTML = `<div class="hist-empty">⚠️ Error al cargar: ${e.message}</div>`;
