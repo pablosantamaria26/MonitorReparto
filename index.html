@@ -878,8 +878,6 @@ function createEmptyState(icon, title, sub) {
 ═══════════════════════════════════════════════════════════════ */
 let mapInst = null, distribMark = null, routeLayer = null;
 const mkCache = {};
-let geocodeCache = {};
-try { geocodeCache = JSON.parse(localStorage.getItem('geo_cache') || '{}'); } catch {}
 let mapUpdateTimer = null;
 let distribCoords = null;
 
@@ -894,7 +892,6 @@ function initMap() {
     .bindPopup(`<div class="pop-title">🏭 Distribuidora</div><div class="pop-name">${DISTRIB_ADDR}</div>`)
     .addTo(mapInst);
   distribCoords = DISTRIB_COORDS;
-  geocodeAddr(DISTRIB_ADDR).then(coords => { if (coords) { distribCoords = coords; distribMark.setLatLng(coords); } });
 }
 
 function mkIcon(type, symbol) {
@@ -922,7 +919,7 @@ async function updateMap() {
 
   const positioned = [];
   for (const p of pedidos) {
-    const coords = await getCoords(p);
+    const coords = getCoords(p);
     if (coords) positioned.push({ p, coords });
   }
   if (!positioned.length) return;
@@ -977,28 +974,9 @@ function buildPopup(p) {
   `;
 }
 
-async function getCoords(p) {
-  const fromField = parseCoords(p.coordenadas);
-  if (fromField) return fromField;
-  const key = `${p.domicilio}||${p.localidad}`;
-  if (geocodeCache[key]) return geocodeCache[key];
-  const coords = await geocodeAddr(`${p.domicilio}, ${p.localidad}, Buenos Aires, Argentina`);
-  if (coords) {
-    geocodeCache[key] = coords;
-    try { localStorage.setItem('geo_cache', JSON.stringify(geocodeCache)); } catch {}
-  }
-  return coords;
-}
-
-async function geocodeAddr(address) {
-  try {
-    await sleep(200);
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=ar&accept-language=es`;
-    const res = await fetch(url, { headers: { 'User-Agent': 'MonitorReparto/1.0' } });
-    const data = await res.json();
-    if (data?.length > 0) return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
-  } catch {}
-  return null;
+function getCoords(p) {
+  // Only use coordinates stored in the spreadsheet field — Nominatim is blocked by CORS from GitHub Pages
+  return parseCoords(p.coordenadas) || null;
 }
 
 /* ═══════════════════════════════════════════════════════════════
