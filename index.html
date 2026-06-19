@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#0d1526"/>
+<meta name="description" content="Monitor de Reparto en tiempo real — Mercado Limpio"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Monitor"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icons/icon-192.png"/>
+<title>Monitor de Reparto</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+/* ─── Tokens ──────────────────────────────────────────────────────────────── */
+:root{
+  --bg:       #070d1a;
+  --s1:       #0d1526;
+  --s2:       #132038;
+  --s3:       #1a2d4a;
+  --border:   #1e3050;
+  --border-h: #2a4470;
+  --text:     #e8f0fe;
+  --muted:    #6b87b0;
+  --subtle:   #8fa8cc;
+
+  --green:    #22c55e;
+  --green-d:  #14532d;
+  --green-bg: #031a0d;
+  --amber:    #f59e0b;
+  --amber-d:  #78350f;
+  --amber-bg: #1a0e00;
+  --blue:     #3b82f6;
+  --blue-d:   #1d4ed8;
+  --blue-bg:  #071830;
+  --red:      #ef4444;
+  --red-bg:   #1f0808;
+
+  --r:14px;--rs:9px;--rm:12px;
+  --transition:.2s ease;
+  --shadow: 0 4px 24px rgba(0,0,0,.45);
+}
+
+/* ─── Reset ───────────────────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:system-ui,-apple-system,'Segoe UI',Roboto,Inter,Arial,sans-serif;
+  background:var(--bg);color:var(--text);line-height:1.4;
+  display:flex;flex-direction:column;
+}
+a{color:var(--blue);text-decoration:none}
+button{
+  font-family:inherit;font-size:13px;cursor:pointer;
+  background:var(--s2);color:var(--text);
+  border:1px solid var(--border);border-radius:var(--rs);
+  padding:7px 13px;
+  transition:filter var(--transition),border-color var(--transition),background var(--transition);
+  display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
+}
+button:hover{filter:brightness(1.2);border-color:var(--border-h)}
+button:active{filter:brightness(.9)}
+
+/* ─── Header ──────────────────────────────────────────────────────────────── */
+header{
+  background:var(--s1);border-bottom:1px solid var(--border);
+  padding:10px 16px;flex-shrink:0;z-index:200;
+}
+.hdr{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.hdr__brand{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.hdr__logo{font-size:22px;line-height:1}
+.hdr__name{font-size:15px;font-weight:700;letter-spacing:-.3px}
+.hdr__sub{font-size:11px;color:var(--muted);margin-top:1px}
+
+.hdr__info{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  font-size:13px;color:var(--subtle);flex:1;
+}
+.turno-pill{
+  background:var(--blue-bg);border:1px solid var(--blue-d);
+  color:var(--blue);border-radius:999px;padding:3px 10px;
+  font-size:12px;font-weight:600;
+}
+.turno-pill.tarde{background:#1a0a30;border-color:#6d28d9;color:#a78bfa}
+
+.hdr__right{display:flex;align-items:center;gap:8px;margin-left:auto}
+.conn{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)}
+.conn__dot{width:8px;height:8px;border-radius:50%;background:var(--muted);transition:background .4s}
+.conn__dot.ok{background:var(--green);box-shadow:0 0 6px var(--green)}
+.conn__dot.err{background:var(--red)}
+.conn__dot.sync{background:var(--amber);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+
+.btn-notif{background:transparent;border:none;font-size:18px;padding:4px;opacity:.6}
+.btn-notif:hover{opacity:1;filter:none}
+.btn-install{
+  background:linear-gradient(135deg,var(--blue),var(--blue-d));
+  border-color:var(--blue-d);font-weight:600;font-size:12px;
+}
+.btn-install:hover{filter:brightness(1.1)}
+
+/* ─── KPI bar ─────────────────────────────────────────────────────────────── */
+#kpiBar{
+  display:flex;gap:8px;padding:10px 16px;
+  background:var(--bg);border-bottom:1px solid var(--border);
+  overflow-x:auto;flex-shrink:0;scrollbar-width:none;
+}
+#kpiBar::-webkit-scrollbar{display:none}
+.kpi{
+  background:var(--s1);border:1px solid var(--border);border-radius:var(--rm);
+  padding:10px 14px;min-width:130px;flex-shrink:0;
+  transition:border-color var(--transition),transform var(--transition);
+  display:flex;flex-direction:column;gap:4px;
+}
+.kpi:hover{border-color:var(--border-h);transform:translateY(-1px)}
+.kpi__label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.kpi__value{font-size:20px;font-weight:700;letter-spacing:-.5px;line-height:1.1}
+.kpi__sub{font-size:11px;color:var(--muted)}
+.kpi--ok .kpi__value{color:var(--green)}
+.kpi--warn .kpi__value{color:var(--amber)}
+.kpi--blue .kpi__value{color:var(--blue)}
+.kpi__spark{height:2px;border-radius:999px;background:var(--border);overflow:hidden;margin-top:4px}
+.kpi__spark-fill{height:100%;width:0%;background:var(--green);transition:width .5s ease}
+
+/* ─── Progress bar ────────────────────────────────────────────────────────── */
+#progressSection{
+  padding:8px 16px;background:var(--bg);border-bottom:1px solid var(--border);
+  flex-shrink:0;display:flex;align-items:center;gap:12px;
+}
+#progressTrack{
+  flex:1;height:8px;border-radius:999px;background:var(--s2);overflow:hidden;
+}
+#progressFill{
+  height:100%;width:0%;border-radius:999px;
+  background:linear-gradient(90deg,#059669,var(--green),#4ade80);
+  box-shadow:0 0 10px rgba(34,197,94,.4);
+  transition:width .6s cubic-bezier(.4,0,.2,1);
+}
+#progressText{font-size:12px;color:var(--muted);white-space:nowrap;flex-shrink:0}
+#progressPct{font-size:13px;font-weight:700;color:var(--green);flex-shrink:0;min-width:38px;text-align:right}
+
+/* ─── Tab nav ─────────────────────────────────────────────────────────────── */
+#tabNav{
+  display:flex;gap:0;background:var(--s1);border-bottom:1px solid var(--border);
+  flex-shrink:0;overflow-x:auto;scrollbar-width:none;padding:0 16px;
+}
+.tab-btn{
+  background:transparent;border:none;border-radius:0;
+  padding:10px 16px;font-size:13px;color:var(--muted);
+  border-bottom:2px solid transparent;position:relative;
+}
+.tab-btn:hover{color:var(--subtle);filter:none;border-color:transparent}
+.tab-btn.active{color:var(--text);border-bottom-color:var(--blue)}
+
+/* ─── Main area ───────────────────────────────────────────────────────────── */
+#mainArea{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.view{display:none;flex:1;overflow:hidden}
+.view.active{display:flex;flex-direction:column}
+
+/* ─── Monitor view: split layout ─────────────────────────────────────────── */
+#splitWrap{display:flex;flex:1;overflow:hidden;gap:0}
+
+#mapPanel{flex:1;position:relative;min-width:0}
+#map{position:absolute;inset:0}
+
+#listPanel{
+  width:380px;flex-shrink:0;display:flex;flex-direction:column;
+  border-left:1px solid var(--border);background:var(--s1);
+  overflow:hidden;
+}
+
+/* Filter pills */
+#listFilters{
+  display:flex;gap:0;padding:8px 10px;border-bottom:1px solid var(--border);
+  overflow-x:auto;scrollbar-width:none;flex-shrink:0;
+}
+.filter-btn{
+  background:transparent;border:1px solid transparent;
+  border-radius:999px;padding:4px 12px;font-size:12px;color:var(--muted);
+}
+.filter-btn:hover{color:var(--subtle);border-color:var(--border);filter:none}
+.filter-btn.active{
+  background:var(--blue-bg);border-color:var(--blue-d);color:var(--blue);
+}
+
+/* Card list */
+#cardList{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:6px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+#cardList::-webkit-scrollbar{width:4px}
+#cardList::-webkit-scrollbar-thumb{background:var(--border);border-radius:999px}
+
+/* Delivery card */
+.d-card{
+  background:var(--s2);border:1px solid var(--border);border-radius:var(--rm);
+  padding:10px 12px;cursor:pointer;
+  transition:border-color var(--transition),transform var(--transition),background var(--transition);
+  animation:fadeUp .25s ease;
+}
+.d-card:hover{border-color:var(--border-h);transform:translateY(-1px);background:var(--s3)}
+.d-card.is-entregado{border-left:3px solid var(--green)}
+.d-card.is-devolucion{border-left:3px solid var(--amber)}
+.d-card.is-pendiente{border-left:3px solid var(--border)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+.d-card__top{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
+.d-card__num{
+  flex-shrink:0;width:22px;height:22px;border-radius:50%;
+  background:var(--bg);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:700;color:var(--muted);margin-top:1px;
+}
+.d-card__name{font-size:14px;font-weight:600;line-height:1.2}
+.d-card__loc{font-size:11px;color:var(--muted);margin-top:1px}
+.d-card__rows{display:flex;flex-direction:column;gap:3px}
+.d-card__row{font-size:12px;color:var(--subtle)}
+.d-card__bottom{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+.d-card__importe{font-size:13px;font-weight:600;color:var(--text)}
+.status-pill{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;
+}
+.status-pill.ok{background:var(--green-bg);color:var(--green);border:1px solid var(--green-d)}
+.status-pill.dev{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-d)}
+.status-pill.pend{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-d)}
+
+/* ─── Empty / waiting state ───────────────────────────────────────────────── */
+.state-empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:12px;padding:40px 24px;text-align:center;color:var(--muted);flex:1;
+}
+.state-empty__icon{font-size:40px;animation:bob 3s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.state-empty__title{font-size:15px;font-weight:600;color:var(--subtle)}
+.state-empty__sub{font-size:13px;line-height:1.5;max-width:260px}
+
+/* ─── History view ────────────────────────────────────────────────────────── */
+#viewHistorial{overflow-y:auto;padding:16px;gap:8px}
+.hist-empty{text-align:center;padding:40px;color:var(--muted)}
+.h-card{
+  background:var(--s1);border:1px solid var(--border);border-radius:var(--r);
+  overflow:hidden;margin-bottom:8px;
+  transition:border-color var(--transition);
+}
+.h-card:hover{border-color:var(--border-h)}
+.h-card__head{
+  display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;
+}
+.h-card__badges{display:flex;gap:8px;align-items:center;flex-shrink:0}
+.h-turno{
+  font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;
+}
+.h-turno.mañana{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-d)}
+.h-turno.tarde{background:#1a0a30;color:#a78bfa;border:1px solid #6d28d9}
+.h-card__info{flex:1;min-width:0}
+.h-card__title{font-size:14px;font-weight:600}
+.h-card__sub{font-size:12px;color:var(--muted);margin-top:2px}
+.h-card__totals{text-align:right;flex-shrink:0}
+.h-card__total-line{font-size:12px;color:var(--subtle)}
+.h-card__grand{font-size:15px;font-weight:700;color:var(--green);margin-top:2px}
+.h-card__chevron{font-size:12px;color:var(--muted);transition:transform .2s;flex-shrink:0}
+.h-card__chevron.open{transform:rotate(180deg)}
+
+.h-card__body{display:none;border-top:1px solid var(--border)}
+.h-card__body.show{display:block}
+.h-tbl{width:100%;border-collapse:collapse}
+.h-tbl thead th{
+  padding:8px 14px;text-align:left;font-size:11px;font-weight:600;
+  color:var(--muted);text-transform:uppercase;letter-spacing:.5px;
+  background:var(--s2);border-bottom:1px solid var(--border);
+}
+.h-tbl tbody td{padding:9px 14px;font-size:13px;border-bottom:1px solid var(--border)}
+.h-tbl tbody tr:last-child td{border-bottom:none}
+.h-tbl tbody tr:hover td{background:var(--s2)}
+.tbl-pill{display:inline-flex;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:600}
+.tbl-pill.ok{background:var(--green-bg);color:var(--green);border:1px solid var(--green-d)}
+.tbl-pill.dev{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-d)}
+
+/* ─── Map marker ──────────────────────────────────────────────────────────── */
+.map-mk{
+  width:32px;height:32px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;border:2px solid;
+  box-shadow:0 2px 8px rgba(0,0,0,.5);
+  transition:transform .2s;cursor:pointer;
+}
+.map-mk:hover{transform:scale(1.15)}
+.map-mk.ok  {background:#052e16;border-color:#16a34a;color:var(--green)}
+.map-mk.dev {background:#1c0f00;border-color:#d97706;color:var(--amber)}
+.map-mk.pend{background:#071830;border-color:#1d4ed8;color:var(--blue)}
+.map-mk.base{background:#0c1f45;border-color:#1d4ed8;color:#fff;font-size:16px}
+
+/* Leaflet popup dark override */
+.leaflet-popup-content-wrapper{background:var(--s2);color:var(--text);border:1px solid var(--border);box-shadow:var(--shadow)}
+.leaflet-popup-tip{background:var(--s2)}
+.leaflet-popup-content{margin:10px 14px;font-family:inherit;font-size:13px}
+.pop-title{font-weight:700;font-size:14px;margin-bottom:4px}
+.pop-name{color:var(--subtle);margin-bottom:2px}
+.pop-addr{font-size:11px;color:var(--muted);margin-bottom:8px}
+.pop-div{border-top:1px solid var(--border);margin:8px 0}
+.pop-estado{font-weight:600;margin-bottom:4px}
+.pop-row{font-size:12px;color:var(--subtle);margin-top:2px}
+
+/* ─── Toast notifications ─────────────────────────────────────────────────── */
+#toasts{
+  position:fixed;top:80px;right:16px;z-index:9999;
+  display:flex;flex-direction:column;gap:8px;pointer-events:none;
+}
+.toast{
+  background:var(--s2);border:1px solid var(--border);border-radius:var(--rm);
+  padding:12px 16px;max-width:320px;pointer-events:auto;
+  box-shadow:var(--shadow);animation:slideIn .3s ease;
+  display:flex;align-items:flex-start;gap:10px;
+}
+@keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+.toast__icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.toast__body{}
+.toast__title{font-weight:600;font-size:13px;margin-bottom:2px}
+.toast__sub{font-size:12px;color:var(--muted)}
+.toast.ok{border-left:3px solid var(--green)}
+.toast.dev{border-left:3px solid var(--amber)}
+.toast.done{border-left:3px solid var(--blue)}
+
+/* ─── Detail modal ────────────────────────────────────────────────────────── */
+#modal{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);
+  display:none;align-items:center;justify-content:center;
+  z-index:500;padding:16px;
+}
+#modal.show{display:flex}
+.modal__box{
+  background:var(--s1);border:1px solid var(--border);border-radius:16px;
+  width:min(480px,100%);max-height:90vh;overflow:hidden;display:flex;flex-direction:column;
+  box-shadow:0 24px 60px rgba(0,0,0,.7);animation:fadeUp .2s ease;
+}
+.modal__head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px;border-bottom:1px solid var(--border);
+}
+.modal__title{font-size:15px;font-weight:700}
+.modal__close{background:transparent;border:none;font-size:18px;color:var(--muted);padding:4px}
+.modal__close:hover{color:var(--text);filter:none}
+.modal__body{overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:14px}
+.modal__row{display:flex;flex-direction:column;gap:3px}
+.modal__row label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.modal__row span{font-size:14px}
+.modal__row a{font-size:14px}
+.modal__divider{border:none;border-top:1px solid var(--border);margin:0}
+
+/* ─── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width:768px){
+  html,body{overflow:auto}
+  #splitWrap{flex-direction:column}
+  #mapPanel{height:50vh;position:relative;flex:none}
+  #listPanel{width:100%;border-left:none;border-top:1px solid var(--border);max-height:50vh}
+}
+@media (max-width:480px){
+  #kpiBar{padding:8px 10px}
+  .kpi{min-width:110px;padding:8px 10px}
+  .kpi__value{font-size:17px}
+  header{padding:8px 12px}
+}
+
+/* ─── Leaflet attribution ─────────────────────────────────────────────────── */
+.leaflet-control-attribution{background:rgba(7,13,26,.8)!important;color:var(--muted)!important;font-size:9px!important}
+.leaflet-control-attribution a{color:var(--muted)!important}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════ HEADER ══════════════════════ -->
+<header>
+  <div class="hdr">
+    <div class="hdr__brand">
+      <div class="hdr__logo">🚚</div>
+      <div>
+        <div class="hdr__name">Monitor de Reparto</div>
+        <div class="hdr__sub" id="lblSub">Conectando…</div>
+      </div>
+    </div>
+
+    <div class="hdr__info">
+      <span class="turno-pill" id="turnoPill" style="display:none"></span>
+      <span id="lblFecha" style="color:var(--subtle)"></span>
+      <span id="lblRepartidor" style="color:var(--muted)"></span>
+      <span id="lblUpd" style="color:var(--muted);font-size:12px"></span>
+    </div>
+
+    <div class="hdr__right">
+      <div class="conn" id="connWrap">
+        <span class="conn__dot sync" id="connDot"></span>
+        <span id="connText">Conectando</span>
+      </div>
+      <button class="btn-notif" id="btnNotif" title="Activar notificaciones">🔔</button>
+      <button class="btn-install" id="btnInstall" style="display:none" title="Instalar como app">⬇ Instalar</button>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════════════════ KPIs ══════════════════════ -->
+<div id="kpiBar">
+  <div class="kpi">
+    <div class="kpi__label">Total pedidos</div>
+    <div class="kpi__value" id="kTotal">—</div>
+    <div class="kpi__sub" id="kTotalSub"></div>
+  </div>
+  <div class="kpi kpi--ok">
+    <div class="kpi__label">Entregados</div>
+    <div class="kpi__value" id="kEntregados">—</div>
+    <div class="kpi__sub" id="kDevSub"></div>
+    <div class="kpi__spark"><div class="kpi__spark-fill" id="kEntSpark"></div></div>
+  </div>
+  <div class="kpi kpi--blue">
+    <div class="kpi__label">Pendientes</div>
+    <div class="kpi__value" id="kPendientes">—</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi__label">💵 Efectivo</div>
+    <div class="kpi__value" id="kEfectivo">$ —</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi__label">💳 Transferencias</div>
+    <div class="kpi__value" id="kTransf">$ —</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi__label">📝 Cheques</div>
+    <div class="kpi__value" id="kCheque">$ —</div>
+  </div>
+</div>
+
+<!-- ══════════════════════ PROGRESS ══════════════════════ -->
+<div id="progressSection">
+  <div id="progressTrack"><div id="progressFill"></div></div>
+  <span id="progressText">—</span>
+  <span id="progressPct"></span>
+</div>
+
+<!-- ══════════════════════ TAB NAV ══════════════════════ -->
+<div id="tabNav">
+  <button class="tab-btn active" data-tab="monitor">📡 En vivo</button>
+  <button class="tab-btn" data-tab="historial">📋 Historial</button>
+</div>
+
+<!-- ══════════════════════ MAIN AREA ══════════════════════ -->
+<div id="mainArea">
+
+  <!-- ── Monitor view ── -->
+  <div id="viewMonitor" class="view active">
+    <div id="splitWrap">
+      <!-- Map -->
+      <div id="mapPanel">
+        <div id="map"></div>
+      </div>
+      <!-- List -->
+      <div id="listPanel">
+        <div id="listFilters">
+          <button class="filter-btn active" data-filter="todos">Todos</button>
+          <button class="filter-btn" data-filter="pendientes">⏳ Pendientes</button>
+          <button class="filter-btn" data-filter="entregados">✅ Entregados</button>
+          <button class="filter-btn" data-filter="devoluciones">♻️ Devoluciones</button>
+        </div>
+        <div id="cardList">
+          <div class="state-empty" id="emptyMonitor">
+            <div class="state-empty__icon">🚚</div>
+            <div class="state-empty__title">Esperando el reparto…</div>
+            <div class="state-empty__sub">El monitor se actualizará automáticamente cuando el repartidor comience.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Historial view ── -->
+  <div id="viewHistorial" class="view">
+    <div id="histContent" style="flex:1;overflow-y:auto;padding:16px"></div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════ MODAL DETALLE ══════════════════════ -->
+<div id="modal">
+  <div class="modal__box">
+    <div class="modal__head">
+      <div class="modal__title" id="modalTitle">Detalle del pedido</div>
+      <button class="modal__close" id="btnModalClose">✕</button>
+    </div>
+    <div class="modal__body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════ TOASTS ══════════════════════ -->
+<div id="toasts"></div>
+
+<!-- ══════════════════════ SCRIPTS ══════════════════════ -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+'use strict';
+/* ═══════════════════════════════════════════════════════════════
+   CONFIG
+═══════════════════════════════════════════════════════════════ */
+const SB_URL = 'https://gjeyvbidomxzofcdycya.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqZXl2Ymlkb214em9mY2R5Y3lhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzIyNzkzMCwiZXhwIjoyMDg4ODAzOTMwfQ.PDN9bfQxnD-COifvPFAbw_1ecAi57hxEFQ2aZDfDqZQ';
+const DISTRIB_ADDR = 'Languehein 1095, Longchamps, Buenos Aires, Argentina';
+const DISTRIB_COORDS = [-34.8907, -58.3967]; // fallback si Nominatim falla
+
+/* ═══════════════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════════════ */
+const state = {
+  pedidos:    [],
+  turno:      '',
+  fecha:      '',
+  repartidor: '',
+  lastUpdate: null,
+  filter:     'todos',
+  connected:  false,
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   UTILS
+═══════════════════════════════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+const el = (tag, cls, html) => { const e = document.createElement(tag); if(cls) e.className = cls; if(html) e.innerHTML = html; return e; };
+const money = n => Number(n||0).toLocaleString('es-AR',{minimumFractionDigits:0,maximumFractionDigits:0});
+const today = () => new Date().toISOString().slice(0,10);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+function fmtFechaLarga(iso) {
+  if (!iso) return '—';
+  const p = iso.split('-');
+  return `${parseInt(p[2])} de ${MESES[parseInt(p[1])-1]} de ${p[0]}`;
+}
+function fmtHora(iso) {
+  if (!iso) return null;
+  try { return new Date(iso).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false}); } catch { return null; }
+}
+function parseCoords(str) {
+  if (!str) return null;
+  const p = String(str).split(',').map(s => parseFloat(s.trim()));
+  if (p.length >= 2 && !isNaN(p[0]) && !isNaN(p[1])) return [p[0], p[1]];
+  return null;
+}
+function buildPago(p) {
+  const parts = [];
+  if (p.formaPago1 && p.importe1 > 0) parts.push(`${p.formaPago1}: $${money(p.importe1)}`);
+  if (p.formaPago2 && p.importe2 > 0) parts.push(`${p.formaPago2}: $${money(p.importe2)}`);
+  return parts.join(' / ');
+}
+function calcKPIs(pedidos) {
+  // devolución = entregado pero cliente devolvió artículos → cuenta como visita completada
+  const entregados   = pedidos.filter(p => p.entregado || p.devolucion).length;
+  const pendientes   = pedidos.filter(p => !p.entregado && !p.devolucion).length;
+  const devoluciones = pedidos.filter(p => p.devolucion).length;
+  let efectivo = 0, transferencia = 0, cheque = 0;
+  pedidos.forEach(p => {
+    const add = (tipo, imp) => {
+      const t = (tipo||'').toLowerCase();
+      if (t.includes('efectivo'))  efectivo      += imp||0;
+      else if (t.includes('trans')) transferencia += imp||0;
+      else if (t.includes('chq') || t.includes('cheq')) cheque += imp||0;
+    };
+    add(p.formaPago1, p.importe1);
+    add(p.formaPago2, p.importe2);
+  });
+  return { total: pedidos.length, entregados, pendientes, devoluciones, efectivo, transferencia, cheque };
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SUPABASE
+═══════════════════════════════════════════════════════════════ */
+const sb = window.supabase.createClient(SB_URL, SB_KEY, {
+  realtime: { params: { eventsPerSecond: 10 } },
+});
+
+async function loadToday() {
+  setConn('sync', 'Actualizando…');
+  try {
+    const { data, error } = await sb
+      .from('reparto_en_curso')
+      .select('*')
+      .eq('fecha', today())
+      .order('updated_at', { ascending: false })
+      .limit(2);
+
+    if (error) {
+      if (error.code === '42P01') { showSetupState(); return; }
+      throw error;
+    }
+
+    // Prefer the most recent record; there might be Mañana + Tarde
+    const rec = data?.[0];
+    if (rec) {
+      applySnapshot(rec);
+    } else {
+      showWaiting();
+    }
+    setConn('ok', 'Tiempo real');
+  } catch(e) {
+    console.error(e);
+    setConn('err', 'Error de conexión');
+    showWaiting();
+  }
+}
+
+function subscribeRealtime() {
+  sb.channel('monitor-live')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'reparto_en_curso' }, payload => {
+      const rec = payload.new;
+      if (!rec || rec.fecha !== today()) return;
+      const prev = [...state.pedidos];
+      applySnapshot(rec);
+      detectAndNotify(prev, state.pedidos);
+    })
+    .subscribe(status => {
+      state.connected = status === 'SUBSCRIBED';
+      if (state.connected) setConn('ok', 'Tiempo real');
+      else if (status === 'CHANNEL_ERROR') setConn('err', 'Sin conexión');
+    });
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   APPLY SNAPSHOT → re-render everything
+═══════════════════════════════════════════════════════════════ */
+function applySnapshot(rec) {
+  state.pedidos    = Array.isArray(rec.pedidos) ? rec.pedidos : [];
+  state.turno      = rec.turno      || '';
+  state.fecha      = rec.fecha      || '';
+  state.repartidor = rec.repartidor || '';
+  state.lastUpdate = rec.updated_at;
+
+  renderHeader();
+  renderKPIs();
+  renderList();
+  scheduleMapUpdate();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════════════════════════ */
+function renderHeader() {
+  const { turno, fecha, repartidor, lastUpdate } = state;
+  const pill = $('turnoPill');
+  if (turno) {
+    pill.textContent = turno;
+    pill.style.display = '';
+    pill.className = 'turno-pill ' + (turno.toLowerCase() === 'tarde' ? 'tarde' : '');
+  }
+  $('lblFecha').textContent    = fecha ? fmtFechaLarga(fecha) : '';
+  $('lblRepartidor').textContent = repartidor ? `· ${repartidor}` : '';
+  $('lblSub').textContent      = `Turno ${turno || '—'}`;
+  if (lastUpdate) {
+    $('lblUpd').textContent = `· Upd: ${fmtHora(lastUpdate) || ''}`;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   KPIs + PROGRESS
+═══════════════════════════════════════════════════════════════ */
+function renderKPIs() {
+  const k = calcKPIs(state.pedidos);
+  $('kTotal').textContent      = k.total;
+  $('kTotalSub').textContent   = '';
+  $('kEntregados').textContent = k.entregados;
+  $('kDevSub').textContent     = k.devoluciones > 0 ? `${k.devoluciones} con devolución` : '';
+  $('kPendientes').textContent = k.pendientes;
+  $('kEfectivo').textContent   = `$ ${money(k.efectivo)}`;
+  $('kTransf').textContent     = `$ ${money(k.transferencia)}`;
+  $('kCheque').textContent     = `$ ${money(k.cheque)}`;
+
+  // Spark bar
+  const pct = k.total > 0 ? Math.round(k.entregados / k.total * 100) : 0;
+  $('kEntSpark').style.width = pct + '%';
+
+  // Progress bar
+  $('progressFill').style.width = pct + '%';
+  $('progressText').textContent = `Entregados ${k.entregados} de ${k.total}`;
+  $('progressPct').textContent  = k.total > 0 ? pct + '%' : '';
+  document.getElementById('progressSection').style.display = k.total > 0 ? '' : 'none';
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LIST
+═══════════════════════════════════════════════════════════════ */
+function renderList() {
+  const list = $('cardList');
+  const pedidos = state.pedidos;
+
+  if (!pedidos.length) {
+    list.innerHTML = '';
+    list.appendChild(createEmptyState('🚚', 'Sin pedidos', 'Aún no hay datos para este turno.'));
+    return;
+  }
+
+  const filter = state.filter;
+  let filtered = pedidos;
+  if (filter === 'pendientes')  filtered = pedidos.filter(p => !p.entregado && !p.devolucion);
+  if (filter === 'entregados')  filtered = pedidos.filter(p => p.entregado && !p.devolucion);
+  if (filter === 'devoluciones')filtered = pedidos.filter(p => p.devolucion);
+
+  // Sort: delivered by horaEntrega asc, then pending by orden
+  filtered = [...filtered].sort((a, b) => {
+    const done_a = a.entregado || a.devolucion;
+    const done_b = b.entregado || b.devolucion;
+    if (done_a && !done_b) return -1;
+    if (!done_a && done_b) return 1;
+    if (done_a && done_b) {
+      const ta = a.horaEntrega ? new Date(a.horaEntrega).getTime() : 0;
+      const tb = b.horaEntrega ? new Date(b.horaEntrega).getTime() : 0;
+      return ta - tb;
+    }
+    return (a.orden||999) - (b.orden||999);
+  });
+
+  list.innerHTML = '';
+
+  if (!filtered.length) {
+    list.appendChild(createEmptyState('🔍', 'Sin resultados', 'No hay pedidos en esta categoría.'));
+    return;
+  }
+
+  filtered.forEach((p, idx) => {
+    const card = createCard(p, idx + 1);
+    list.appendChild(card);
+  });
+}
+
+function createCard(p, n) {
+  const isEnt = p.entregado && !p.devolucion;
+  const isDev = p.devolucion;
+  const isPend = !p.entregado && !p.devolucion;
+
+  const cls = isEnt ? 'is-entregado' : isDev ? 'is-devolucion' : 'is-pendiente';
+  const pago = buildPago(p);
+  const hora = fmtHora(p.horaEntrega);
+
+  const card = el('div', `d-card ${cls}`);
+  card.innerHTML = `
+    <div class="d-card__top">
+      <div class="d-card__num">${n}</div>
+      <div>
+        <div class="d-card__name">Nº ${p.numeroCliente} — ${p.nombre}</div>
+        <div class="d-card__loc">${p.localidad || ''}</div>
+      </div>
+    </div>
+    <div class="d-card__rows">
+      ${hora ? `<div class="d-card__row">⏱ <strong>${hora}</strong></div>` : ''}
+      ${pago  ? `<div class="d-card__row">💳 ${pago}</div>` : ''}
+      ${p.notasDevolucion ? `<div class="d-card__row" style="color:var(--amber)">📝 ${p.notasDevolucion}</div>` : ''}
+    </div>
+    <div class="d-card__bottom">
+      <span class="d-card__importe">$ ${money(p.importeTotal)}</span>
+      <span class="status-pill ${isEnt?'ok':isDev?'dev':'pend'}">
+        ${isEnt ? '✅ Entregado' : isDev ? '♻️ Devolución' : '⏳ Pendiente'}
+      </span>
+    </div>`;
+
+  card.addEventListener('click', () => openModal(p));
+  return card;
+}
+
+function createEmptyState(icon, title, sub) {
+  const d = el('div', 'state-empty');
+  d.innerHTML = `<div class="state-empty__icon">${icon}</div><div class="state-empty__title">${title}</div><div class="state-empty__sub">${sub}</div>`;
+  return d;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MAP
+═══════════════════════════════════════════════════════════════ */
+let mapInst = null, distribMark = null, routeLayer = null;
+const mkCache = {};
+let geocodeCache = {};
+try { geocodeCache = JSON.parse(localStorage.getItem('geo_cache') || '{}'); } catch {}
+let mapUpdateTimer = null;
+let distribCoords = null;
+
+function initMap() {
+  mapInst = L.map('map', { zoomControl: true, attributionControl: true });
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com">CARTO</a>',
+    maxZoom: 19,
+  }).addTo(mapInst);
+
+  mapInst.setView(DISTRIB_COORDS, 12);
+
+  // Add distribuidora marker
+  distribMark = L.marker(DISTRIB_COORDS, { icon: mkIcon('base', '🏭'), zIndexOffset: 1000 })
+    .bindPopup(`<div class="pop-title">🏭 Distribuidora</div><div class="pop-name">${DISTRIB_ADDR}</div>`)
+    .addTo(mapInst);
+  distribCoords = DISTRIB_COORDS;
+
+  // Try to geocode distribuidora for accuracy
+  geocodeAddr(DISTRIB_ADDR).then(coords => {
+    if (coords) {
+      distribCoords = coords;
+      distribMark.setLatLng(coords);
+    }
+  });
+}
+
+function mkIcon(type, symbol) {
+  const cls = { base:'base', ok:'ok', dev:'dev', pend:'pend' }[type] || 'pend';
+  return L.divIcon({
+    className: '',
+    html: `<div class="map-mk ${cls}">${symbol}</div>`,
+    iconSize: [32,32], iconAnchor: [16,16], popupAnchor: [0,-18],
+  });
+}
+
+function scheduleMapUpdate() {
+  clearTimeout(mapUpdateTimer);
+  mapUpdateTimer = setTimeout(updateMap, 300);
+}
+
+async function updateMap() {
+  if (!mapInst) return;
+
+  // Clear existing pedido markers and route
+  Object.values(mkCache).forEach(m => { try { mapInst.removeLayer(m); } catch {} });
+  Object.keys(mkCache).forEach(k => delete mkCache[k]);
+  if (routeLayer) { mapInst.removeLayer(routeLayer); routeLayer = null; }
+
+  const pedidos = state.pedidos;
+  if (!pedidos.length) return;
+
+  const positioned = [];
+
+  // Process in order, with small delay between Nominatim calls
+  for (const p of pedidos) {
+    const coords = await getCoords(p);
+    if (coords) positioned.push({ p, coords });
+  }
+
+  if (!positioned.length) return;
+
+  // Place markers
+  positioned.forEach(({ p, coords }) => {
+    const isEnt  = p.entregado && !p.devolucion;
+    const isDev  = p.devolucion;
+    const type   = isEnt ? 'ok' : isDev ? 'dev' : 'pend';
+    const symbol = isEnt ? '✓' : isDev ? '♻' : String(p.orden || '?');
+
+    const mk = L.marker(coords, { icon: mkIcon(type, symbol) })
+      .bindPopup(buildPopup(p), { maxWidth: 220 })
+      .addTo(mapInst);
+
+    mkCache[p.numeroCliente] = mk;
+  });
+
+  // Draw route: connect delivered in order of horaEntrega
+  const done = positioned
+    .filter(({ p }) => p.entregado || p.devolucion)
+    .sort((a, b) => {
+      const ta = a.p.horaEntrega ? new Date(a.p.horaEntrega).getTime() : Infinity;
+      const tb = b.p.horaEntrega ? new Date(b.p.horaEntrega).getTime() : Infinity;
+      return ta - tb;
+    });
+
+  if (done.length > 0) {
+    const pts = [distribCoords || DISTRIB_COORDS, ...done.map(({ coords }) => coords)];
+    routeLayer = L.polyline(pts, {
+      color: '#22c55e', weight: 2.5, opacity: .65, dashArray: null,
+    }).addTo(mapInst);
+  }
+
+  // Fit bounds
+  const allPts = positioned.map(({ coords }) => coords);
+  allPts.push(distribCoords || DISTRIB_COORDS);
+  if (allPts.length > 1) {
+    mapInst.fitBounds(allPts, { padding: [40, 40], maxZoom: 14 });
+  }
+}
+
+function buildPopup(p) {
+  const isEnt = p.entregado && !p.devolucion;
+  const isDev = p.devolucion;
+  const estado = isEnt ? '✅ Entregado' : isDev ? '♻️ Devolución' : '⏳ Pendiente';
+  const color  = isEnt ? '#22c55e' : isDev ? '#f59e0b' : '#6b87b0';
+  const hora   = fmtHora(p.horaEntrega);
+  const pago   = buildPago(p);
+
+  return `
+    <div class="pop-title">Nº ${p.numeroCliente}</div>
+    <div class="pop-name">${p.nombre}</div>
+    <div class="pop-addr">${p.domicilio ? p.domicilio + ', ' : ''}${p.localidad}</div>
+    <div class="pop-div"></div>
+    <div class="pop-estado" style="color:${color}">${estado}</div>
+    ${hora  ? `<div class="pop-row">⏱ ${hora}</div>` : ''}
+    ${pago  ? `<div class="pop-row">💳 ${pago}</div>` : ''}
+    <div class="pop-row" style="margin-top:4px">Importe: <strong>$${money(p.importeTotal)}</strong></div>
+    ${p.notasDevolucion ? `<div class="pop-row" style="color:#f59e0b">📝 ${p.notasDevolucion}</div>` : ''}
+    ${p.comprobanteId ? `<div class="pop-row"><a href="https://drive.google.com/uc?id=${p.comprobanteId}&export=view" target="_blank">📷 Ver comprobante</a></div>` : ''}
+  `;
+}
+
+/* ── Geocoding ────────────────────────────────────────────────── */
+async function getCoords(p) {
+  // Use existing coordinates when available
+  const fromField = parseCoords(p.coordenadas);
+  if (fromField) return fromField;
+
+  const key = `${p.domicilio}||${p.localidad}`;
+  if (geocodeCache[key]) return geocodeCache[key];
+
+  const coords = await geocodeAddr(`${p.domicilio}, ${p.localidad}, Buenos Aires, Argentina`);
+  if (coords) {
+    geocodeCache[key] = coords;
+    try { localStorage.setItem('geo_cache', JSON.stringify(geocodeCache)); } catch {}
+  }
+  return coords;
+}
+
+async function geocodeAddr(address) {
+  try {
+    await sleep(200); // Respect Nominatim 1 req/s limit
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=ar&accept-language=es`;
+    const res = await fetch(url, { headers: { 'User-Agent': 'MonitorReparto/1.0' } });
+    const data = await res.json();
+    if (data?.length > 0) return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+  } catch {}
+  return null;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MODAL DETALLE
+═══════════════════════════════════════════════════════════════ */
+function openModal(p) {
+  const isEnt  = p.entregado && !p.devolucion;
+  const isDev  = p.devolucion;
+  const hora   = fmtHora(p.horaEntrega);
+  const pago   = buildPago(p);
+
+  $('modalTitle').textContent = `Nº ${p.numeroCliente} — ${p.nombre}`;
+  $('modalBody').innerHTML = `
+    <div class="modal__row"><label>Cliente</label><span>${p.nombre}</span></div>
+    <div class="modal__row"><label>Dirección</label><span>${p.domicilio || '—'}, ${p.localidad || '—'}</span></div>
+    ${p.telefono ? `<div class="modal__row"><label>Teléfono</label><span><a href="tel:${p.telefono}">${p.telefono}</a></span></div>` : ''}
+    <hr class="modal__divider"/>
+    <div class="modal__row"><label>Estado</label>
+      <span class="status-pill ${isEnt?'ok':isDev?'dev':'pend'}" style="display:inline-flex">
+        ${isEnt ? '✅ Entregado' : isDev ? '♻️ Devolución' : '⏳ Pendiente'}
+      </span>
+    </div>
+    ${hora ? `<div class="modal__row"><label>Hora de entrega</label><span>⏱ ${hora}</span></div>` : ''}
+    <div class="modal__row"><label>Importe factura</label><span>$ ${money(p.importeTotal)}</span></div>
+    ${pago ? `<div class="modal__row"><label>Forma de pago</label><span>${pago}</span></div>` : ''}
+    ${p.notasDevolucion ? `<div class="modal__row"><label>Notas</label><span style="color:var(--amber)">${p.notasDevolucion}</span></div>` : ''}
+    <hr class="modal__divider"/>
+    <div class="modal__row"><label>Orden de entrega</label><span>${p.orden || '—'}</span></div>
+    ${p.comprobanteId ? `<div class="modal__row"><label>Comprobante</label><a href="https://drive.google.com/uc?id=${p.comprobanteId}&export=view" target="_blank" rel="noopener">📷 Ver foto del comprobante</a></div>` : ''}
+    ${p.coordenadas ? `<div class="modal__row"><label>Coordenadas</label><a href="https://maps.google.com/?q=${p.coordenadas}" target="_blank">📍 Ver en Google Maps</a></div>` : ''}
+  `;
+  $('modal').classList.add('show');
+  $('modal').setAttribute('aria-hidden', 'false');
+}
+function closeModal() {
+  $('modal').classList.remove('show');
+  $('modal').setAttribute('aria-hidden', 'true');
+}
+$('btnModalClose').onclick = closeModal;
+$('modal').addEventListener('click', e => { if (e.target === $('modal')) closeModal(); });
+
+/* ═══════════════════════════════════════════════════════════════
+   HISTORIAL
+═══════════════════════════════════════════════════════════════ */
+async function loadHistory() {
+  $('histContent').innerHTML = `<div class="hist-empty">Cargando historial…</div>`;
+  try {
+    const { data, error } = await sb
+      .from('rendiciones_reparto')
+      .select('fecha,turno,repartidor,efectivo,transferencia,cheque,total,detalle_clientes,created_at')
+      .order('fecha', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(40);
+
+    if (error) throw error;
+    renderHistory(data || []);
+  } catch(e) {
+    $('histContent').innerHTML = `<div class="hist-empty">Error al cargar: ${e.message}</div>`;
+  }
+}
+
+function renderHistory(rends) {
+  if (!rends.length) {
+    $('histContent').innerHTML = `<div class="hist-empty">📚 Sin rendiciones en Supabase aún.</div>`;
+    return;
+  }
+  $('histContent').innerHTML = rends.map((r, i) => {
+    const det     = Array.isArray(r.detalle_clientes) ? r.detalle_clientes : [];
+    const devs    = det.filter(d => d.devolucion).length;
+    const turnoLow= (r.turno||'').toLowerCase();
+    return `
+      <div class="h-card">
+        <div class="h-card__head" onclick="toggleHist(${i})">
+          <div class="h-card__badges">
+            <span class="h-turno ${turnoLow}">${r.turno}</span>
+          </div>
+          <div class="h-card__info">
+            <div class="h-card__title">${fmtFechaLarga(r.fecha)}</div>
+            <div class="h-card__sub">${r.repartidor || '—'} · ${det.length} pedidos${devs > 0 ? ` · ${devs} devolucion${devs>1?'es':''}` : ''}</div>
+          </div>
+          <div class="h-card__totals">
+            <div class="h-card__total-line">💵 $${money(r.efectivo)} · 💳 $${money(r.transferencia)}${r.cheque>0 ? ` · 📝 $${money(r.cheque)}` : ''}</div>
+            <div class="h-card__grand">$ ${money(r.total)}</div>
+          </div>
+          <span class="h-card__chevron" id="chev-${i}">▼</span>
+        </div>
+        <div class="h-card__body" id="hist-body-${i}">
+          <table class="h-tbl">
+            <thead><tr>
+              <th>Nº</th><th>Cliente</th><th>Localidad</th><th>Total pagado</th><th>Estado</th>
+            </tr></thead>
+            <tbody>
+              ${det.map(d => `
+                <tr>
+                  <td>${d.numCliente||d.numeroCliente||'—'}</td>
+                  <td>${d.nombre||'—'}</td>
+                  <td>${d.localidad||'—'}</td>
+                  <td>$ ${money(d.totalPagado||(d.importe1||0)+(d.importe2||0))}</td>
+                  <td><span class="tbl-pill ${d.devolucion?'dev':'ok'}">${d.devolucion?'Devolución':'Entregado'}</span></td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function toggleHist(i) {
+  const body = $(`hist-body-${i}`);
+  const chev = $(`chev-${i}`);
+  const open = body.classList.toggle('show');
+  chev.classList.toggle('open', open);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   NOTIFICATIONS + CHANGE DETECTION
+═══════════════════════════════════════════════════════════════ */
+function detectAndNotify(prev, next) {
+  const prevMap = new Map(prev.map(p => [p.numeroCliente, p]));
+
+  let newlyDone = 0;
+  next.forEach(p => {
+    const old = prevMap.get(p.numeroCliente);
+    if (!old) return;
+
+    const wasEnt  = old.entregado || old.devolucion;
+    const nowEnt  = p.entregado   || p.devolucion;
+
+    if (!wasEnt && nowEnt) {
+      newlyDone++;
+      if (p.devolucion) {
+        toast('dev', '♻️ Devolución', `${p.nombre} — ${p.localidad}`);
+        notif('♻️ Devolución', `${p.nombre} — ${p.localidad}`, 'dev');
+      } else {
+        toast('ok', '✅ Entregado', `${p.nombre} — ${p.localidad}`);
+        notif('✅ Entregado', `${p.nombre} — ${p.localidad}`, 'ok');
+      }
+    }
+  });
+
+  // All done celebration
+  if (next.length > 0 && next.every(p => p.entregado || p.devolucion)) {
+    const prevDone = prev.length > 0 && prev.every(p => p.entregado || p.devolucion);
+    if (!prevDone) {
+      toast('done', '🎉 ¡Reparto completado!', `Turno ${state.turno} — todos los pedidos entregados`);
+      notif('🎉 ¡Reparto completado!', `Turno ${state.turno} finalizado`, 'done');
+    }
+  }
+}
+
+function toast(type, title, sub) {
+  const wrap = $('toasts');
+  const t = el('div', `toast ${type}`);
+  const icons = { ok:'📦', dev:'♻️', done:'🎉', err:'⚠️' };
+  t.innerHTML = `<div class="toast__icon">${icons[type]||'📦'}</div><div class="toast__body"><div class="toast__title">${title}</div><div class="toast__sub">${sub}</div></div>`;
+  wrap.appendChild(t);
+  setTimeout(() => { t.style.opacity='0'; t.style.transform='translateX(20px)'; t.style.transition='.4s ease'; setTimeout(()=>t.remove(),400); }, 5000);
+}
+
+function notif(title, body, tag) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  try { new Notification(title, { body, icon: './icons/icon-192.png', tag, badge: './icons/icon-192.png', vibrate: [200,100,200] }); } catch {}
+}
+
+async function requestNotif() {
+  if (!('Notification' in window)) { alert('Tu navegador no soporta notificaciones.'); return; }
+  const perm = await Notification.requestPermission();
+  if (perm === 'granted') {
+    $('btnNotif').textContent = '🔔';
+    $('btnNotif').title = 'Notificaciones activas';
+    toast('ok', '🔔 Notificaciones activadas', 'Recibirás alertas de cada entrega.');
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CONNECTION STATUS
+═══════════════════════════════════════════════════════════════ */
+function setConn(type, text) {
+  const dot = $('connDot');
+  dot.className = 'conn__dot ' + (type === 'ok' ? 'ok' : type === 'err' ? 'err' : 'sync');
+  $('connText').textContent = text;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EMPTY / WAITING / SETUP STATES
+═══════════════════════════════════════════════════════════════ */
+function showWaiting() {
+  setConn('ok', 'Conectado');
+  $('cardList').innerHTML = '';
+  $('cardList').appendChild(createEmptyState('🚚', 'Esperando el reparto…', 'El monitor se actualizará automáticamente cuando el repartidor comience a entregar.'));
+}
+
+function showSetupState() {
+  setConn('err', 'Configuración pendiente');
+  $('cardList').innerHTML = '';
+  $('cardList').appendChild(createEmptyState('⚙️', 'Configuración pendiente', 'Ejecutar schema.sql en Supabase y agregar el snippet gas-realtime.js al CodigoGS.'));
+  toast('err', '⚙️ Tabla no encontrada', 'Ejecutar schema.sql en Supabase primero.');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TAB NAVIGATION
+═══════════════════════════════════════════════════════════════ */
+let histLoaded = false;
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.dataset.tab;
+    $('viewMonitor').classList.toggle('active',  tab === 'monitor');
+    $('viewHistorial').classList.toggle('active', tab === 'historial');
+    if (tab === 'historial' && !histLoaded) { histLoaded = true; loadHistory(); }
+    if (tab === 'monitor') setTimeout(() => mapInst?.invalidateSize(), 50);
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   FILTER PILLS
+═══════════════════════════════════════════════════════════════ */
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.filter = btn.dataset.filter;
+    renderList();
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   PWA INSTALL
+═══════════════════════════════════════════════════════════════ */
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  $('btnInstall').style.display = '';
+});
+$('btnInstall').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') $('btnInstall').style.display = 'none';
+  deferredPrompt = null;
+});
+window.addEventListener('appinstalled', () => { $('btnInstall').style.display = 'none'; });
+
+/* ═══════════════════════════════════════════════════════════════
+   SERVICE WORKER
+═══════════════════════════════════════════════════════════════ */
+function registerSW() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(e => console.warn('SW:', e));
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   KEYBOARD SHORTCUTS
+═══════════════════════════════════════════════════════════════ */
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.key === 'Escape') closeModal();
+  if (e.key === 'r' || e.key === 'R') loadToday();
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════════════════ */
+$('btnNotif').addEventListener('click', requestNotif);
+if (Notification.permission === 'granted') $('btnNotif').title = 'Notificaciones activas';
+
+document.addEventListener('DOMContentLoaded', () => {
+  initMap();
+  loadToday();
+  subscribeRealtime();
+  registerSW();
+
+  // Auto-refresh every 30s as fallback
+  setInterval(loadToday, 30_000);
+
+  // URL param shortcut
+  const params = new URLSearchParams(location.search);
+  if (params.get('tab') === 'historial') {
+    document.querySelector('[data-tab="historial"]')?.click();
+  }
+});
+</script>
+</body>
+</html>
