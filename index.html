@@ -307,33 +307,56 @@ header{
 .comp-stat__val{font-size:17px;font-weight:800;color:#065f46}
 .comp-stat__sub{font-size:11px;color:#047857;margin-top:2px}
 
-/* ─── AI report in historial ─────────────────────────────────────────────── */
-.h-ai-report{
-  border-top:1px solid var(--border);
-  background:linear-gradient(to right,var(--violet-bg),transparent 240px);
-  padding:12px 16px;
+/* ─── AI button en cabecera de tarjeta historial ─────────────────────────── */
+.h-ai-btn{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;
+  background:var(--violet-bg);color:var(--violet);border:1px solid var(--violet-border);
+  cursor:pointer;white-space:nowrap;flex-shrink:0;transition:background .15s;
 }
-.h-ai-toggle{
-  display:flex;align-items:center;gap:6px;
-  font-size:12px;font-weight:700;color:var(--violet);
-  cursor:pointer;border:none;background:none;padding:0;
+.h-ai-btn:hover{background:var(--violet);color:#fff}
+
+/* ─── Modal informe IA ───────────────────────────────────────────────────── */
+#aiModal{
+  position:fixed;inset:0;background:rgba(15,23,42,.55);
+  display:none;align-items:center;justify-content:center;
+  z-index:600;padding:16px;backdrop-filter:blur(4px);
 }
-.h-ai-toggle:hover{opacity:.8}
-.h-ai-body{display:none;margin-top:10px}
-.h-ai-body.show{display:block}
-.h-ai-text{
-  font-size:13px;line-height:1.65;color:var(--text);
-  white-space:pre-wrap;background:var(--s2);
-  border:1px solid var(--border);border-radius:8px;
-  padding:10px 12px;max-height:320px;overflow-y:auto;
+#aiModal.show{display:flex}
+.ai-modal__box{
+  background:var(--s1);border:1px solid var(--border);border-radius:18px;
+  width:min(560px,100%);max-height:88vh;overflow:hidden;
+  display:flex;flex-direction:column;
+  box-shadow:var(--shadow-lg);animation:fadeUp .2s ease;
 }
-.h-ai-copy{
-  display:inline-flex;align-items:center;gap:5px;margin-top:10px;
-  padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;
+.ai-modal__head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px;border-bottom:1px solid var(--border);
+  background:linear-gradient(135deg,var(--violet-bg),var(--blue-bg));
+  flex-shrink:0;
+}
+.ai-modal__title{font-size:15px;font-weight:800;color:var(--text)}
+.ai-modal__sub{font-size:12px;color:var(--muted);margin-top:2px}
+.ai-modal__close{
+  background:none;border:none;font-size:18px;cursor:pointer;
+  color:var(--muted);padding:4px;line-height:1;
+}
+.ai-modal__close:hover{color:var(--text)}
+.ai-modal__body{
+  padding:16px 18px;overflow-y:auto;flex:1;
+  font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;
+}
+.ai-modal__foot{
+  padding:12px 18px;border-top:1px solid var(--border);
+  display:flex;gap:8px;flex-shrink:0;background:var(--s2);
+}
+.ai-modal__copy{
+  flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:9px 16px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;
   background:var(--violet);color:#fff;border:none;transition:opacity .2s;
 }
-.h-ai-copy:hover{opacity:.85}
-.h-ai-copy.copied{background:var(--green)}
+.ai-modal__copy:hover{opacity:.85}
+.ai-modal__copy.copied{background:var(--green)}
 
 /* ─── Empty / waiting state ───────────────────────────────────────────────── */
 .state-empty{
@@ -631,6 +654,23 @@ header{
       <button class="modal__close" id="btnModalClose">✕</button>
     </div>
     <div class="modal__body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════ MODAL INFORME IA ══════════════════════ -->
+<div id="aiModal">
+  <div class="ai-modal__box">
+    <div class="ai-modal__head">
+      <div>
+        <div class="ai-modal__title">🤖 Informe IA del reparto</div>
+        <div class="ai-modal__sub" id="aiModalSub"></div>
+      </div>
+      <button class="ai-modal__close" onclick="closeAiModal()">✕</button>
+    </div>
+    <div class="ai-modal__body" id="aiModalBody"></div>
+    <div class="ai-modal__foot">
+      <button class="ai-modal__copy" id="aiModalCopyBtn" onclick="copyAiModalText()">📋 Copiar para Nicolás</button>
+    </div>
   </div>
 </div>
 
@@ -1201,29 +1241,32 @@ function renderHistory(rends, reportMap = new Map()) {
       </div>
     </div>` : '';
 
+  window._aiReports = {};
   $('histContent').innerHTML = summaryHtml + rends.map((r, i) => {
     const det      = Array.isArray(r.detalle_clientes) ? r.detalle_clientes : [];
     const devs     = det.filter(d => d.devolucion).length;
     const turnoLow = (r.turno||'').toLowerCase();
     const avg      = calcAvgFromHistory(det);
     const aiRep    = reportMap.get(`${r.fecha}_${r.turno}`);
-    const aiHtml   = aiRep?.reporte_ia ? `
-      <div class="h-ai-report">
-        <button class="h-ai-toggle" onclick="toggleAiReport(${i})">🤖 Ver informe IA <span id="ai-chev-${i}">▼</span></button>
-        <div class="h-ai-body" id="ai-body-${i}">
-          <div class="h-ai-text" id="ai-text-${i}">${aiRep.reporte_ia}${aiRep.ruta_optima ? '\n\n── Ruta sugerida ──\n' + aiRep.ruta_optima : ''}</div>
-          <button class="h-ai-copy" id="ai-copy-${i}" onclick="copyAiReport(${i})">📋 Copiar para Nicolás</button>
-        </div>
-      </div>` : '';
+    if (aiRep?.reporte_ia) {
+      window._aiReports[i] = {
+        text: aiRep.reporte_ia + (aiRep.ruta_optima ? '\n\n── Ruta sugerida ──\n' + aiRep.ruta_optima : ''),
+        sub:  `${fmtFechaLarga(r.fecha)} · Turno ${r.turno} · ${r.repartidor || '—'}`,
+      };
+    }
+    const aiBtnHtml = aiRep?.reporte_ia
+      ? `<button class="h-ai-btn" onclick="openAiModal(${i});event.stopPropagation()">🤖 Informe IA</button>`
+      : '';
     return `
       <div class="h-card">
         <div class="h-card__head" onclick="toggleHist(${i})">
           <div class="h-card__badges">
             <span class="h-turno ${turnoLow}">${r.turno}</span>
+            ${aiBtnHtml}
           </div>
           <div class="h-card__info">
             <div class="h-card__title">${fmtFechaLarga(r.fecha)}</div>
-            <div class="h-card__sub">${r.repartidor || '—'} · ${det.length} pedidos${devs > 0 ? ` · ${devs} dev.` : ''}${aiRep ? ' · 🤖' : ''}</div>
+            <div class="h-card__sub">${r.repartidor || '—'} · ${det.length} pedidos${devs > 0 ? ` · ${devs} dev.` : ''}</div>
           </div>
           <div class="h-card__totals">
             <div class="h-card__total-line">💵 $${money(r.efectivo)} · 💳 $${money(r.transferencia)}</div>
@@ -1248,32 +1291,40 @@ function renderHistory(rends, reportMap = new Map()) {
                 </tr>`).join('')}
             </tbody>
           </table>
-          ${aiHtml}
         </div>
       </div>`;
   }).join('');
 }
 
-function toggleAiReport(i) {
-  const body = $(`ai-body-${i}`);
-  const chev = $(`ai-chev-${i}`);
-  if (!body) return;
-  const open = body.classList.toggle('show');
-  chev.textContent = open ? '▲' : '▼';
+function openAiModal(i) {
+  const rep = window._aiReports?.[i];
+  if (!rep) return;
+  $('aiModalBody').textContent = rep.text;
+  $('aiModalSub').textContent  = rep.sub;
+  const btn = $('aiModalCopyBtn');
+  btn.innerHTML = '📋 Copiar para Nicolás';
+  btn.classList.remove('copied');
+  $('aiModal').classList.add('show');
 }
 
-async function copyAiReport(i) {
-  const text = $(`ai-text-${i}`)?.textContent?.trim() || '';
-  const btn  = $(`ai-copy-${i}`);
+function closeAiModal() {
+  $('aiModal').classList.remove('show');
+}
+
+async function copyAiModalText() {
+  const text = $('aiModalBody').textContent.trim();
+  const btn  = $('aiModalCopyBtn');
   try {
     await navigator.clipboard.writeText(text);
     btn.textContent = '✅ Copiado';
     btn.classList.add('copied');
     setTimeout(() => { btn.innerHTML = '📋 Copiar para Nicolás'; btn.classList.remove('copied'); }, 2500);
   } catch {
-    btn.textContent = 'No se pudo copiar — seleccioná el texto manualmente';
+    btn.textContent = 'Seleccioná el texto y copiá manualmente';
   }
 }
+
+$('aiModal').addEventListener('click', e => { if (e.target === $('aiModal')) closeAiModal(); });
 
 function toggleHist(i) {
   const body = $(`hist-body-${i}`);
