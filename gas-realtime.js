@@ -63,7 +63,11 @@ function actualizarRepartoEnCurso_(hoja, filas) {
     var SB_URL = 'https://gjeyvbidomxzofcdycya.supabase.co';
     var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqZXl2Ymlkb214em9mY2R5Y3lhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzIyNzkzMCwiZXhwIjoyMDg4ODAzOTMwfQ.PDN9bfQxnD-COifvPFAbw_1ecAi57hxEFQ2aZDfDqZQ';
 
-    var fecha = String(hoja.getRange('H1').getValue() || '').trim();
+    var tz    = Session.getScriptTimeZone();
+    var rawFecha = hoja.getRange('H1').getValue();
+    var fecha = (rawFecha instanceof Date && !isNaN(rawFecha))
+      ? Utilities.formatDate(rawFecha, tz, 'yyyy-MM-dd')
+      : String(rawFecha || '').trim();
     var turno = String(hoja.getRange('I1').getValue() || '').trim();
     if (!fecha || !turno) return;
 
