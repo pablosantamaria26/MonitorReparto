@@ -282,6 +282,59 @@ header{
 @keyframes pulse-pend{0%,100%{box-shadow:0 2px 8px rgba(245,158,11,.35)}50%{box-shadow:0 2px 16px rgba(245,158,11,.6)}}
 .d-card__dev-note{font-size:11px;color:var(--green-text);background:var(--green-bg);border:1px solid var(--green-border);border-radius:6px;padding:2px 8px;margin-top:4px;display:inline-block}
 
+/* ─── Turno completo banner ──────────────────────────────────────────────── */
+#completionBanner{
+  background:linear-gradient(135deg,#ecfdf5,#d1fae5);
+  border:2px solid #6ee7b7;border-radius:var(--r);
+  margin:12px 16px 0;padding:0;overflow:hidden;
+  box-shadow:0 4px 20px rgba(16,185,129,.2);
+  animation:fadeUp .4s ease;
+}
+#completionInner{padding:16px 18px}
+#completionTitle{
+  font-size:17px;font-weight:900;color:#065f46;
+  margin-bottom:12px;display:flex;align-items:center;gap:8px;
+}
+#completionMetrics{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
+  gap:8px;
+}
+.comp-stat{
+  background:rgba(255,255,255,.72);border:1px solid #a7f3d0;
+  border-radius:10px;padding:10px 12px;
+}
+.comp-stat__label{font-size:10px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.comp-stat__val{font-size:17px;font-weight:800;color:#065f46}
+.comp-stat__sub{font-size:11px;color:#047857;margin-top:2px}
+
+/* ─── AI report in historial ─────────────────────────────────────────────── */
+.h-ai-report{
+  border-top:1px solid var(--border);
+  background:linear-gradient(to right,var(--violet-bg),transparent 240px);
+  padding:12px 16px;
+}
+.h-ai-toggle{
+  display:flex;align-items:center;gap:6px;
+  font-size:12px;font-weight:700;color:var(--violet);
+  cursor:pointer;border:none;background:none;padding:0;
+}
+.h-ai-toggle:hover{opacity:.8}
+.h-ai-body{display:none;margin-top:10px}
+.h-ai-body.show{display:block}
+.h-ai-text{
+  font-size:13px;line-height:1.65;color:var(--text);
+  white-space:pre-wrap;background:var(--s2);
+  border:1px solid var(--border);border-radius:8px;
+  padding:10px 12px;max-height:320px;overflow-y:auto;
+}
+.h-ai-copy{
+  display:inline-flex;align-items:center;gap:5px;margin-top:10px;
+  padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;
+  background:var(--violet);color:#fff;border:none;transition:opacity .2s;
+}
+.h-ai-copy:hover{opacity:.85}
+.h-ai-copy.copied{background:var(--green)}
+
 /* ─── Empty / waiting state ───────────────────────────────────────────────── */
 .state-empty{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -519,6 +572,14 @@ header{
   <span id="progressPct"></span>
 </div>
 
+<!-- ══════════════════════ TURNO COMPLETO BANNER ══════════════════════ -->
+<div id="completionBanner" style="display:none">
+  <div id="completionInner">
+    <div id="completionTitle">🏁 Turno completado</div>
+    <div id="completionMetrics"></div>
+  </div>
+</div>
+
 <!-- ══════════════════════ TAB NAV ══════════════════════ -->
 <div id="tabNav">
   <button class="tab-btn active" data-tab="monitor">📡 En vivo</button>
@@ -727,10 +788,25 @@ function applySnapshot(rec) {
   state.fecha      = rec.fecha      || '';
   state.repartidor = rec.repartidor || '';
   state.lastUpdate = rec.updated_at;
+
+  if (state.pedidos.length === 0) {
+    renderKPIs();
+    $('cardList').innerHTML = '';
+    $('cardList').appendChild(createEmptyState('⏳', 'Esperando nuevo turno…',
+      'El turno anterior finalizó. El monitor se actualizará automáticamente cuando comience el próximo reparto.'));
+    hideCompletionBanner();
+    scheduleMapUpdate();
+    return;
+  }
+
   renderHeader();
   renderKPIs();
   renderList();
   scheduleMapUpdate();
+
+  const turnoCompleto = state.pedidos.every(p => p.entregado || p.devolucion);
+  if (turnoCompleto) showCompletionBanner();
+  else hideCompletionBanner();
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -806,14 +882,12 @@ function renderList() {
 
   filtered.sort((a, b) => {
     const da = a.entregado || a.devolucion, db = b.entregado || b.devolucion;
-    if (da && !db) return -1;
-    if (!da && db) return 1;
-    if (da && db) {
-      const ta = a.horaEntrega ? new Date(a.horaEntrega).getTime() : 0;
-      const tb = b.horaEntrega ? new Date(b.horaEntrega).getTime() : 0;
-      return ta - tb;
-    }
-    return (a.orden||999) - (b.orden||999);
+    if (!da && db) return -1;  // pendientes primero
+    if (da && !db) return 1;
+    if (!da && !db) return (a.orden||999) - (b.orden||999);  // pendientes por orden de ruta
+    const ta = a.horaEntrega ? new Date(a.horaEntrega).getTime() : Infinity;
+    const tb = b.horaEntrega ? new Date(b.horaEntrega).getTime() : Infinity;
+    return ta - tb;  // entregados cronológicamente
   });
 
   // Build interval map for delivered items
@@ -1079,25 +1153,31 @@ $('modal').addEventListener('click', e => { if (e.target === $('modal')) closeMo
 async function loadHistory() {
   $('histContent').innerHTML = `<div class="hist-empty">⏳ Cargando historial…</div>`;
   try {
-    const { data, error } = await sb
-      .from('rendiciones_reparto')
-      .select('fecha,turno,repartidor,efectivo,transferencia,cheque,total,detalle_clientes')
-      .order('fecha', { ascending: false })
-      .limit(40);
-    if (error) throw error;
-    renderHistory(data || []);
+    const [{ data: rends, error: e1 }, { data: reportes }] = await Promise.all([
+      sb.from('rendiciones_reparto')
+        .select('fecha,turno,repartidor,efectivo,transferencia,cheque,total,detalle_clientes')
+        .order('fecha', { ascending: false })
+        .limit(40),
+      sb.from('reportes_reparto')
+        .select('fecha,turno,reporte_ia,ruta_optima,metricas')
+        .order('fecha', { ascending: false })
+        .limit(40),
+    ]);
+    if (e1) throw e1;
+    const reportMap = new Map();
+    (reportes || []).forEach(r => reportMap.set(`${r.fecha}_${r.turno}`, r));
+    renderHistory(rends || [], reportMap);
   } catch(e) {
     $('histContent').innerHTML = `<div class="hist-empty">⚠️ Error al cargar: ${e.message}</div>`;
   }
 }
 
-function renderHistory(rends) {
+function renderHistory(rends, reportMap = new Map()) {
   if (!rends.length) {
     $('histContent').innerHTML = `<div class="hist-empty">📚 Sin rendiciones en Supabase aún.</div>`;
     return;
   }
 
-  // Overall avg time across all rendiciones
   let allAvgs = [];
   rends.forEach(r => {
     const avg = calcAvgFromHistory(r.detalle_clientes);
@@ -1116,16 +1196,25 @@ function renderHistory(rends) {
         <div class="h-summary__val">${rends.length}</div>
       </div>
       <div class="h-summary__stat">
-        <div class="h-summary__label">📦 Turnos registrados</div>
-        <div class="h-summary__val">${rends.reduce((s,r) => s + (Array.isArray(r.detalle_clientes) ? r.detalle_clientes.length : 0), 0)} pedidos</div>
+        <div class="h-summary__label">📦 Pedidos totales</div>
+        <div class="h-summary__val">${rends.reduce((s,r) => s + (Array.isArray(r.detalle_clientes) ? r.detalle_clientes.length : 0), 0)}</div>
       </div>
     </div>` : '';
 
   $('histContent').innerHTML = summaryHtml + rends.map((r, i) => {
-    const det     = Array.isArray(r.detalle_clientes) ? r.detalle_clientes : [];
-    const devs    = det.filter(d => d.devolucion).length;
+    const det      = Array.isArray(r.detalle_clientes) ? r.detalle_clientes : [];
+    const devs     = det.filter(d => d.devolucion).length;
     const turnoLow = (r.turno||'').toLowerCase();
-    const avg     = calcAvgFromHistory(det);
+    const avg      = calcAvgFromHistory(det);
+    const aiRep    = reportMap.get(`${r.fecha}_${r.turno}`);
+    const aiHtml   = aiRep?.reporte_ia ? `
+      <div class="h-ai-report">
+        <button class="h-ai-toggle" onclick="toggleAiReport(${i})">🤖 Ver informe IA <span id="ai-chev-${i}">▼</span></button>
+        <div class="h-ai-body" id="ai-body-${i}">
+          <div class="h-ai-text" id="ai-text-${i}">${aiRep.reporte_ia}${aiRep.ruta_optima ? '\n\n── Ruta sugerida ──\n' + aiRep.ruta_optima : ''}</div>
+          <button class="h-ai-copy" id="ai-copy-${i}" onclick="copyAiReport(${i})">📋 Copiar para Nicolás</button>
+        </div>
+      </div>` : '';
     return `
       <div class="h-card">
         <div class="h-card__head" onclick="toggleHist(${i})">
@@ -1134,7 +1223,7 @@ function renderHistory(rends) {
           </div>
           <div class="h-card__info">
             <div class="h-card__title">${fmtFechaLarga(r.fecha)}</div>
-            <div class="h-card__sub">${r.repartidor || '—'} · ${det.length} pedidos${devs > 0 ? ` · ${devs} dev.` : ''}</div>
+            <div class="h-card__sub">${r.repartidor || '—'} · ${det.length} pedidos${devs > 0 ? ` · ${devs} dev.` : ''}${aiRep ? ' · 🤖' : ''}</div>
           </div>
           <div class="h-card__totals">
             <div class="h-card__total-line">💵 $${money(r.efectivo)} · 💳 $${money(r.transferencia)}</div>
@@ -1159,9 +1248,31 @@ function renderHistory(rends) {
                 </tr>`).join('')}
             </tbody>
           </table>
+          ${aiHtml}
         </div>
       </div>`;
   }).join('');
+}
+
+function toggleAiReport(i) {
+  const body = $(`ai-body-${i}`);
+  const chev = $(`ai-chev-${i}`);
+  if (!body) return;
+  const open = body.classList.toggle('show');
+  chev.textContent = open ? '▲' : '▼';
+}
+
+async function copyAiReport(i) {
+  const text = $(`ai-text-${i}`)?.textContent?.trim() || '';
+  const btn  = $(`ai-copy-${i}`);
+  try {
+    await navigator.clipboard.writeText(text);
+    btn.textContent = '✅ Copiado';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.innerHTML = '📋 Copiar para Nicolás'; btn.classList.remove('copied'); }, 2500);
+  } catch {
+    btn.textContent = 'No se pudo copiar — seleccioná el texto manualmente';
+  }
 }
 
 function toggleHist(i) {
@@ -1235,6 +1346,53 @@ function showWaiting() {
   setConn('ok', 'Conectado');
   $('cardList').innerHTML = '';
   $('cardList').appendChild(createEmptyState('🚚', 'Esperando el reparto…', 'El monitor se actualizará automáticamente cuando el repartidor comience.'));
+}
+
+function showCompletionBanner() {
+  const p = state.pedidos;
+  const k = calcKPIs(p);
+
+  const withTime = p
+    .filter(x => (x.entregado || x.devolucion) && x.horaEntrega)
+    .sort((a, b) => new Date(a.horaEntrega) - new Date(b.horaEntrega));
+
+  let durText = '—';
+  if (withTime.length >= 2) {
+    const mins = Math.round((new Date(withTime.at(-1).horaEntrega) - new Date(withTime[0].horaEntrega)) / 60000);
+    durText = mins >= 60 ? `${Math.floor(mins/60)}h ${mins % 60}m` : `${mins} min`;
+  }
+
+  let fastest = Infinity, slowest = 0;
+  for (let i = 1; i < withTime.length; i++) {
+    const diff = Math.round((new Date(withTime[i].horaEntrega) - new Date(withTime[i-1].horaEntrega)) / 60000);
+    if (diff < fastest) fastest = diff;
+    if (diff > slowest) slowest = diff;
+  }
+
+  const totalRec = k.efectivo + k.transferencia + k.cheque;
+  const devNote  = k.devoluciones > 0 ? `${k.devoluciones} con devolución` : 'sin devoluciones';
+
+  const stats = [
+    { label: 'Pedidos entregados', val: String(k.entregados), sub: devNote },
+    { label: 'Duración total',     val: durText,              sub: 'de la ruta' },
+    { label: 'Promedio parada',    val: k.avgTime !== null ? `${k.avgTime} min` : '—', sub: 'entre entregas' },
+    { label: 'Más rápido',        val: fastest !== Infinity ? `${fastest} min` : '—', sub: 'entre paradas' },
+    { label: 'Más lento',         val: slowest > 0 ? `${slowest} min` : '—',          sub: 'entre paradas' },
+    { label: 'Total recaudado',   val: `$ ${money(totalRec)}`, sub: `Ef $${money(k.efectivo)} · Tr $${money(k.transferencia)}` },
+  ];
+
+  $('completionMetrics').innerHTML = stats.map(s => `
+    <div class="comp-stat">
+      <div class="comp-stat__label">${s.label}</div>
+      <div class="comp-stat__val">${s.val}</div>
+      <div class="comp-stat__sub">${s.sub}</div>
+    </div>`).join('');
+
+  $('completionBanner').style.display = '';
+}
+
+function hideCompletionBanner() {
+  $('completionBanner').style.display = 'none';
 }
 
 function showSetupState() {
