@@ -1,4 +1,4 @@
-const CACHE_NAME = 'monitor-reparto-v4';
+const CACHE_NAME = 'monitor-reparto-v5';
 const STATIC_ASSETS = [
   './',
   './index.html',

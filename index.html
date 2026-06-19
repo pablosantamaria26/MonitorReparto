@@ -245,9 +245,8 @@ header{
   animation:fadeUp .25s ease;box-shadow:var(--shadow);
 }
 .d-card:hover{border-color:var(--border-h);transform:translateY(-1px);box-shadow:var(--shadow-md)}
-.d-card.is-entregado{border-left:4px solid var(--green);background:linear-gradient(to right,rgba(16,185,129,.04),transparent 80px)}
-.d-card.is-devolucion{border-left:4px solid var(--amber);background:linear-gradient(to right,rgba(245,158,11,.04),transparent 80px)}
-.d-card.is-pendiente{border-left:4px solid #e2e8f0}
+.d-card.is-entregado{border-left:4px solid var(--green);background:linear-gradient(to right,rgba(16,185,129,.06),transparent 90px)}
+.d-card.is-pendiente{border-left:4px solid var(--amber);background:linear-gradient(to right,rgba(245,158,11,.05),transparent 90px)}
 @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
 /* Interval separator */
@@ -275,12 +274,13 @@ header{
 .d-card__bottom{display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:6px;border-top:1px solid var(--border)}
 .d-card__importe{font-size:13px;font-weight:700;color:var(--text)}
 .status-pill{
-  display:inline-flex;align-items:center;gap:4px;
-  padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;
+  display:inline-flex;align-items:center;gap:5px;
+  padding:5px 14px;border-radius:999px;font-size:13px;font-weight:800;letter-spacing:.3px;
 }
-.status-pill.ok{background:var(--green-bg);color:var(--green-d);border:1px solid var(--green-border)}
-.status-pill.dev{background:var(--amber-bg);color:var(--amber-d);border:1px solid var(--amber-border)}
-.status-pill.pend{background:var(--blue-bg);color:var(--blue-d);border:1px solid var(--blue-border)}
+.status-pill.ok{background:var(--green);color:#fff;border:none;box-shadow:0 2px 8px rgba(16,185,129,.35)}
+.status-pill.pend{background:var(--amber);color:#fff;border:none;box-shadow:0 2px 8px rgba(245,158,11,.35);animation:pulse-pend 2s ease-in-out infinite}
+@keyframes pulse-pend{0%,100%{box-shadow:0 2px 8px rgba(245,158,11,.35)}50%{box-shadow:0 2px 16px rgba(245,158,11,.6)}}
+.d-card__dev-note{font-size:11px;color:var(--green-text);background:var(--green-bg);border:1px solid var(--green-border);border-radius:6px;padding:2px 8px;margin-top:4px;display:inline-block}
 
 /* ─── Empty / waiting state ───────────────────────────────────────────────── */
 .state-empty{
@@ -847,31 +847,29 @@ function renderList() {
 }
 
 function createCard(p, n) {
-  const isEnt  = p.entregado && !p.devolucion;
+  const isDone = p.entregado || p.devolucion;
   const isDev  = p.devolucion;
   const pago   = buildPago(p);
   const hora   = fmtHora(p.horaEntrega);
-  const cls    = isEnt ? 'is-entregado' : isDev ? 'is-devolucion' : 'is-pendiente';
+  const cls    = isDone ? 'is-entregado' : 'is-pendiente';
 
   const card = el('div', `d-card ${cls}`);
   card.innerHTML = `
     <div class="d-card__top">
       <div class="d-card__num">${n}</div>
-      <div>
+      <div style="flex:1">
         <div class="d-card__name">Nº ${p.numeroCliente} — ${p.nombre}</div>
         <div class="d-card__loc">📍 ${p.localidad || ''}</div>
       </div>
+      <span class="status-pill ${isDone?'ok':'pend'}">${isDone ? '✅ Entregado' : '⏳ Pendiente'}</span>
     </div>
     <div class="d-card__rows">
+      ${isDev ? `<div class="d-card__dev-note">↩ Con devolución${p.notasDevolucion ? ': ' + p.notasDevolucion : ''}</div>` : ''}
       ${hora ? `<div class="d-card__row">🕐 <strong>${hora}</strong></div>` : ''}
       ${pago ? `<div class="d-card__row">💳 ${pago}</div>` : ''}
-      ${p.notasDevolucion ? `<div class="d-card__row" style="color:var(--amber-d);font-weight:600">📝 ${p.notasDevolucion}</div>` : ''}
     </div>
     <div class="d-card__bottom">
       <span class="d-card__importe">$ ${money(p.importeTotal)}</span>
-      <span class="status-pill ${isEnt?'ok':isDev?'dev':'pend'}">
-        ${isEnt ? '✅ Entregado' : isDev ? '♻️ Devolución' : '⏳ Pendiente'}
-      </span>
     </div>`;
 
   card.addEventListener('click', () => openModal(p));
@@ -1045,10 +1043,10 @@ function getCoords(p) {
    MODAL DETALLE
 ═══════════════════════════════════════════════════════════════ */
 function openModal(p) {
-  const isEnt = p.entregado && !p.devolucion;
-  const isDev = p.devolucion;
-  const hora  = fmtHora(p.horaEntrega);
-  const pago  = buildPago(p);
+  const isDone = p.entregado || p.devolucion;
+  const isDev  = p.devolucion;
+  const hora   = fmtHora(p.horaEntrega);
+  const pago   = buildPago(p);
   $('modalTitle').textContent = `Nº ${p.numeroCliente} — ${p.nombre}`;
   $('modalBody').innerHTML = `
     <div class="modal__row"><label>Cliente</label><span>${p.nombre}</span></div>
@@ -1056,18 +1054,18 @@ function openModal(p) {
     ${p.telefono ? `<div class="modal__row"><label>Teléfono</label><span><a href="tel:${p.telefono}">${p.telefono}</a></span></div>` : ''}
     <hr class="modal__divider"/>
     <div class="modal__row"><label>Estado</label>
-      <span class="status-pill ${isEnt?'ok':isDev?'dev':'pend'}" style="display:inline-flex">
-        ${isEnt ? '✅ Entregado' : isDev ? '♻️ Devolución' : '⏳ Pendiente'}
+      <span class="status-pill ${isDone?'ok':'pend'}" style="display:inline-flex">
+        ${isDone ? '✅ Entregado' : '⏳ Pendiente'}
       </span>
     </div>
+    ${isDev ? `<div class="modal__row"><label>Devolución</label><span class="d-card__dev-note" style="display:inline-block">↩ ${p.notasDevolucion || 'El repartidor registró devolución'}</span></div>` : ''}
     ${hora ? `<div class="modal__row"><label>Hora de entrega</label><span>🕐 ${hora}</span></div>` : ''}
     <div class="modal__row"><label>Importe factura</label><span>$ ${money(p.importeTotal)}</span></div>
     ${pago ? `<div class="modal__row"><label>Forma de pago</label><span>${pago}</span></div>` : ''}
-    ${p.notasDevolucion ? `<div class="modal__row"><label>Notas devolución</label><span style="color:var(--amber-d);font-weight:600">${p.notasDevolucion}</span></div>` : ''}
     <hr class="modal__divider"/>
     <div class="modal__row"><label>Orden de entrega</label><span>${p.orden || '—'}</span></div>
     ${p.comprobanteId ? `<div class="modal__row"><label>Comprobante</label><a href="https://drive.google.com/uc?id=${p.comprobanteId}&export=view" target="_blank" rel="noopener">📷 Ver foto del comprobante</a></div>` : ''}
-    ${p.coordenadas ? `<div class="modal__row"><label>Coordenadas</label><a href="https://maps.google.com/?q=${p.coordenadas}" target="_blank">📍 Ver en Google Maps</a></div>` : ''}
+    ${p.coordenadas ? `<div class="modal__row"><label>Mapa</label><a href="https://maps.google.com/?q=${p.coordenadas}" target="_blank">📍 Ver en Google Maps</a></div>` : ''}
   `;
   $('modal').classList.add('show');
 }
