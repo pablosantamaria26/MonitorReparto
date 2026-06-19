@@ -353,9 +353,20 @@ header{
 }
 .map-mk:hover{transform:scale(1.15)}
 .map-mk.ok  {background:var(--green);border-color:var(--green-d);color:#fff}
-.map-mk.dev {background:var(--amber);border-color:var(--amber-d);color:#fff}
 .map-mk.pend{background:var(--blue);border-color:var(--blue-d);color:#fff}
-.map-mk.base{background:#1e293b;border-color:#0f172a;color:#fff;font-size:16px}
+.map-mk.base{background:#1e293b;border-color:#0f172a;color:#fff;font-size:14px}
+.map-mk.fin {
+  background:linear-gradient(135deg,#059669,#1e293b);
+  border-color:#065f46;color:#fff;font-size:15px;
+  width:36px;height:36px;
+  box-shadow:0 3px 12px rgba(5,150,105,.5);
+}
+/* Route segment label */
+.route-num{
+  background:rgba(16,185,129,.15);border:1px solid var(--green-border);
+  color:var(--green-d);border-radius:999px;
+  font-size:10px;font-weight:800;padding:1px 6px;white-space:nowrap;
+}
 
 /* Leaflet popup light */
 .leaflet-popup-content-wrapper{background:#fff;color:var(--text);border:1px solid var(--border);box-shadow:var(--shadow-lg)}
@@ -895,11 +906,13 @@ function initMap() {
 }
 
 function mkIcon(type, symbol) {
-  const cls = { base:'base', ok:'ok', dev:'dev', pend:'pend' }[type] || 'pend';
+  const cls = { base:'base', ok:'ok', pend:'pend', fin:'fin' }[type] || 'pend';
+  const size = type === 'fin' ? [36,36] : [32,32];
+  const anchor = type === 'fin' ? [18,18] : [16,16];
   return L.divIcon({
     className: '',
     html: `<div class="map-mk ${cls}">${symbol}</div>`,
-    iconSize: [32,32], iconAnchor: [16,16], popupAnchor: [0,-18],
+    iconSize: size, iconAnchor: anchor, popupAnchor: [0,-20],
   });
 }
 
@@ -924,18 +937,8 @@ async function updateMap() {
   }
   if (!positioned.length) return;
 
-  positioned.forEach(({ p, coords }) => {
-    const isEnt  = p.entregado && !p.devolucion;
-    const isDev  = p.devolucion;
-    const type   = isEnt ? 'ok' : isDev ? 'dev' : 'pend';
-    const symbol = isEnt ? '✓' : isDev ? '♻' : String(p.orden || '?');
-    const mk = L.marker(coords, { icon: mkIcon(type, symbol) })
-      .bindPopup(buildPopup(p), { maxWidth: 220 })
-      .addTo(mapInst);
-    mkCache[p.numeroCliente] = mk;
-  });
-
-  const done = positioned
+  // Sort delivered by horaEntrega to get chronological delivery order
+  const deliveredSorted = positioned
     .filter(({ p }) => p.entregado || p.devolucion)
     .sort((a, b) => {
       const ta = a.p.horaEntrega ? new Date(a.p.horaEntrega).getTime() : Infinity;
@@ -943,9 +946,47 @@ async function updateMap() {
       return ta - tb;
     });
 
-  if (done.length > 0) {
-    const pts = [distribCoords || DISTRIB_COORDS, ...done.map(({ coords }) => coords)];
-    routeLayer = L.polyline(pts, { color: '#10b981', weight: 3, opacity: .75 }).addTo(mapInst);
+  // Map: numeroCliente → delivery order (1-based)
+  const deliveryOrder = new Map();
+  deliveredSorted.forEach(({ p }, i) => deliveryOrder.set(p.numeroCliente, i + 1));
+  const lastDeliveryNum = deliveredSorted.length;
+
+  // Place markers — devolución is GREEN (was delivered, client just returned items)
+  positioned.forEach(({ p, coords }) => {
+    const isDone = p.entregado || p.devolucion;
+    const order  = deliveryOrder.get(p.numeroCliente);
+    const isLast = isDone && order === lastDeliveryNum && lastDeliveryNum > 0;
+    const type   = isLast ? 'fin' : isDone ? 'ok' : 'pend';
+    const symbol = isDone ? String(order) : String(p.orden || '?');
+
+    const mk = L.marker(coords, { icon: mkIcon(type, symbol) })
+      .bindPopup(buildPopup(p, order), { maxWidth: 240 })
+      .addTo(mapInst);
+    mkCache[p.numeroCliente] = mk;
+  });
+
+  // Draw route: distribuidora → stops in delivery order
+  if (deliveredSorted.length > 0) {
+    const routePts = [distribCoords || DISTRIB_COORDS, ...deliveredSorted.map(({ coords }) => coords)];
+
+    // Main route line
+    routeLayer = L.layerGroup().addTo(mapInst);
+    L.polyline(routePts, { color: '#10b981', weight: 3, opacity: .8 }).addTo(routeLayer);
+
+    // Direction arrows: small arrowhead at midpoint of each segment
+    for (let i = 1; i < routePts.length; i++) {
+      const from = routePts[i - 1], to = routePts[i];
+      const mid  = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2];
+      const angle = Math.atan2(to[1] - from[1], to[0] - from[0]) * 180 / Math.PI;
+      L.marker(mid, {
+        icon: L.divIcon({
+          className: '',
+          html: `<div style="transform:rotate(${angle}deg);font-size:14px;color:#059669;line-height:1;text-shadow:0 1px 3px rgba(255,255,255,.8)">➤</div>`,
+          iconSize: [16, 16], iconAnchor: [8, 8],
+        }),
+        interactive: false,
+      }).addTo(routeLayer);
+    }
   }
 
   const allPts = positioned.map(({ coords }) => coords);
@@ -953,23 +994,29 @@ async function updateMap() {
   if (allPts.length > 1) mapInst.fitBounds(allPts, { padding: [40, 40], maxZoom: 14 });
 }
 
-function buildPopup(p) {
-  const isEnt  = p.entregado && !p.devolucion;
+function buildPopup(p, deliveryOrder) {
+  const isDone = p.entregado || p.devolucion;
   const isDev  = p.devolucion;
-  const estado = isEnt ? '✅ Entregado' : isDev ? '♻️ Devolución' : '⏳ Pendiente';
-  const color  = isEnt ? '#059669' : isDev ? '#d97706' : '#64748b';
+  // Devolución = was delivered, client returned items → green (completed visit)
+  const color  = isDone ? '#059669' : '#64748b';
+  const estado = isDone
+    ? (isDev ? '✅ Entregado (con devolución)' : '✅ Entregado')
+    : '⏳ Pendiente';
   const hora   = fmtHora(p.horaEntrega);
   const pago   = buildPago(p);
+  const orderBadge = deliveryOrder
+    ? `<span style="background:#10b981;color:#fff;border-radius:12px;padding:1px 8px;font-size:11px;font-weight:700;margin-left:6px">#${deliveryOrder}</span>`
+    : '';
   return `
-    <div class="pop-title">Nº ${p.numeroCliente}</div>
+    <div class="pop-title">Nº ${p.numeroCliente}${orderBadge}</div>
     <div class="pop-name">${p.nombre}</div>
     <div class="pop-addr">${p.domicilio ? p.domicilio + ', ' : ''}${p.localidad}</div>
     <div class="pop-div"></div>
-    <div class="pop-estado" style="color:${color}">${estado}</div>
+    <div class="pop-estado" style="color:${color};font-weight:600">${estado}</div>
+    ${isDev && p.notasDevolucion ? `<div class="pop-row" style="color:#059669;font-size:11px">Devolvió: ${p.notasDevolucion}</div>` : ''}
     ${hora  ? `<div class="pop-row">⏱ ${hora}</div>` : ''}
     ${pago  ? `<div class="pop-row">💳 ${pago}</div>` : ''}
     <div class="pop-row" style="margin-top:4px">Importe: <strong>$${money(p.importeTotal)}</strong></div>
-    ${p.notasDevolucion ? `<div class="pop-row" style="color:#d97706;font-weight:600">📝 ${p.notasDevolucion}</div>` : ''}
     ${p.comprobanteId ? `<div class="pop-row"><a href="https://drive.google.com/uc?id=${p.comprobanteId}&export=view" target="_blank">📷 Ver comprobante</a></div>` : ''}
   `;
 }
