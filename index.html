@@ -282,6 +282,28 @@ header{
 @keyframes pulse-pend{0%,100%{box-shadow:0 2px 8px rgba(245,158,11,.35)}50%{box-shadow:0 2px 16px rgba(245,158,11,.6)}}
 .d-card__dev-note{font-size:11px;color:var(--green-text);background:var(--green-bg);border:1px solid var(--green-border);border-radius:6px;padding:2px 8px;margin-top:4px;display:inline-block}
 
+/* ─── Preparto banner (reparto cargado, aún sin entregas) ───────────────── */
+#prepartoBanner{
+  background:linear-gradient(135deg,#eff6ff,#dbeafe);
+  border:2px solid #93c5fd;border-radius:var(--r);
+  margin:12px 16px 0;padding:14px 18px;
+  display:none;align-items:center;gap:14px;
+  box-shadow:0 4px 20px rgba(59,130,246,.15);
+  animation:fadeUp .4s ease;
+}
+#prepartoBanner__icon{font-size:32px;animation:bob 2s ease-in-out infinite;flex-shrink:0}
+#prepartoBanner__text{}
+#prepartoBanner__title{font-size:15px;font-weight:800;color:#1e40af;margin-bottom:3px}
+#prepartoBanner__sub{font-size:12px;color:#3b82f6}
+.preparto-dots{display:inline-flex;gap:4px;vertical-align:middle;margin-left:4px}
+.preparto-dots span{
+  width:6px;height:6px;border-radius:50%;background:#3b82f6;
+  animation:blink 1.4s ease-in-out infinite;
+}
+.preparto-dots span:nth-child(2){animation-delay:.2s}
+.preparto-dots span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
+
 /* ─── Turno completo banner ──────────────────────────────────────────────── */
 #completionBanner{
   background:linear-gradient(135deg,#ecfdf5,#d1fae5);
@@ -595,6 +617,15 @@ header{
   <span id="progressPct"></span>
 </div>
 
+<!-- ══════════════════════ PREPARTO BANNER ══════════════════════════ -->
+<div id="prepartoBanner">
+  <div id="prepartoBanner__icon">🚚</div>
+  <div id="prepartoBanner__text">
+    <div id="prepartoBanner__title">Reparto del día cargado</div>
+    <div id="prepartoBanner__sub">Esperando la primera entrega<span class="preparto-dots"><span></span><span></span><span></span></span></div>
+  </div>
+</div>
+
 <!-- ══════════════════════ TURNO COMPLETO BANNER ══════════════════════ -->
 <div id="completionBanner" style="display:none">
   <div id="completionInner">
@@ -688,7 +719,7 @@ header{
 const SB_URL = 'https://gjeyvbidomxzofcdycya.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqZXl2Ymlkb214em9mY2R5Y3lhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzIyNzkzMCwiZXhwIjoyMDg4ODAzOTMwfQ.PDN9bfQxnD-COifvPFAbw_1ecAi57hxEFQ2aZDfDqZQ';
 const DISTRIB_ADDR   = 'Languehein 1095, Longchamps, Buenos Aires, Argentina';
-const DISTRIB_COORDS = [-34.8907, -58.3967];
+const DISTRIB_COORDS = [-34.85727568509326, -58.379342026287354];
 
 /* ═══════════════════════════════════════════════════════════════
    STATE
@@ -703,7 +734,7 @@ const state = {
 const $ = id => document.getElementById(id);
 const el = (tag, cls, html) => { const e = document.createElement(tag); if(cls) e.className = cls; if(html) e.innerHTML = html; return e; };
 const money = n => Number(n||0).toLocaleString('es-AR',{minimumFractionDigits:0,maximumFractionDigits:0});
-const today = () => new Date().toISOString().slice(0,10);
+const today = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Argentina/Buenos_Aires' });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -835,6 +866,7 @@ function applySnapshot(rec) {
     $('cardList').appendChild(createEmptyState('⏳', 'Esperando nuevo turno…',
       'El turno anterior finalizó. El monitor se actualizará automáticamente cuando comience el próximo reparto.'));
     hideCompletionBanner();
+    hidePrepartoBanner();
     scheduleMapUpdate();
     return;
   }
@@ -845,9 +877,13 @@ function applySnapshot(rec) {
   scheduleMapUpdate();
 
   const turnoCompleto = state.pedidos.every(p => p.entregado || p.devolucion);
-  if (turnoCompleto) showCompletionBanner();
-  else hideCompletionBanner();
+  const ningunaEntrega = state.pedidos.every(p => !p.entregado && !p.devolucion);
+  if (turnoCompleto) { showCompletionBanner(); hidePrepartoBanner(); }
+  else { hideCompletionBanner(); if (ningunaEntrega) showPrepartoBanner(); else hidePrepartoBanner(); }
 }
+
+function showPrepartoBanner() { $('prepartoBanner').style.display = 'flex'; }
+function hidePrepartoBanner() { $('prepartoBanner').style.display = 'none'; }
 
 /* ═══════════════════════════════════════════════════════════════
    HEADER
@@ -1400,6 +1436,8 @@ function showWaiting() {
   setConn('ok', 'Conectado');
   $('cardList').innerHTML = '';
   $('cardList').appendChild(createEmptyState('🚚', 'Esperando el reparto…', 'El monitor se actualizará automáticamente cuando el repartidor comience.'));
+  hidePrepartoBanner();
+  hideCompletionBanner();
 }
 
 function showCompletionBanner() {
