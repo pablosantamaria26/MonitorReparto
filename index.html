@@ -838,15 +838,25 @@ function subscribeRealtime() {
   sb.channel('monitor-live')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'reparto_en_curso' }, payload => {
       const rec = payload.new;
-      if (!rec || rec.fecha !== today()) return;
+      // Aceptar cualquier UPDATE/INSERT — si no hay fecha coincidente, recargar del server
+      if (!rec) return;
+      if (rec.fecha !== today()) {
+        // Vino un evento de otra fecha — refrescar por si hay fila de hoy también
+        loadToday();
+        return;
+      }
       const prev = [...state.pedidos];
       applySnapshot(rec);
       detectAndNotify(prev, state.pedidos);
     })
     .subscribe(status => {
       state.connected = status === 'SUBSCRIBED';
-      if (state.connected) setConn('ok', 'Tiempo real');
-      else if (status === 'CHANNEL_ERROR') setConn('err', 'Sin conexión');
+      if (state.connected) {
+        setConn('ok', 'Tiempo real');
+        loadToday(); // Carga inmediata al reconectar para no perder eventos previos
+      } else if (status === 'CHANNEL_ERROR') {
+        setConn('err', 'Sin conexión');
+      }
     });
 }
 
@@ -1433,6 +1443,14 @@ function setConn(type, text) {
    EMPTY / WAITING / SETUP STATES
 ═══════════════════════════════════════════════════════════════ */
 function showWaiting() {
+  // Limpiar estado para no mostrar datos viejos en header/KPIs
+  state.pedidos    = [];
+  state.turno      = '';
+  state.repartidor = '';
+  state.fecha      = '';
+  state.lastUpdate = null;
+  renderHeader();
+  renderKPIs();
   setConn('ok', 'Conectado');
   $('cardList').innerHTML = '';
   $('cardList').appendChild(createEmptyState('🚚', 'Esperando el reparto…', 'El monitor se actualizará automáticamente cuando el repartidor comience.'));
@@ -1574,7 +1592,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadToday();
   subscribeRealtime();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
-  setInterval(loadToday, 30_000);
+  setInterval(loadToday, 10_000); // Cada 10s como respaldo si Realtime falla
   const params = new URLSearchParams(location.search);
   if (params.get('tab') === 'historial') document.querySelector('[data-tab="historial"]')?.click();
 });
