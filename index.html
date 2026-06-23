@@ -329,6 +329,50 @@ header{
 .comp-stat__val{font-size:17px;font-weight:800;color:#065f46}
 .comp-stat__sub{font-size:11px;color:#047857;margin-top:2px}
 
+/* ─── Completion modal ───────────────────────────────────────────────────── */
+#completionModal{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center}
+#completionModalOverlay{position:absolute;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(2px)}
+#completionModalBox{
+  position:relative;z-index:1;background:#fff;border-radius:16px;
+  width:min(480px,94vw);max-height:82vh;overflow-y:auto;
+  box-shadow:0 20px 60px rgba(0,0,0,.25);animation:fadeUp .3s ease;
+}
+#completionModalHead{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 20px 12px;border-bottom:1px solid #e5e7eb;position:sticky;top:0;background:#fff;
+}
+#completionModalTitle{font-size:15px;font-weight:900;color:#065f46}
+#completionModalClose{
+  background:none;border:none;cursor:pointer;font-size:18px;color:#6b7280;
+  width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+  border-radius:8px;transition:background .15s;
+}
+#completionModalClose:hover{background:#f3f4f6}
+#completionModalBody{padding:16px 20px 20px}
+.cm-section{margin-bottom:16px}
+.cm-section-title{font-size:11px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.cm-order-row{
+  display:flex;align-items:center;gap:10px;padding:8px 0;
+  border-bottom:1px solid #f3f4f6;font-size:13px;
+}
+.cm-order-row:last-child{border-bottom:none}
+.cm-num{
+  width:24px;height:24px;border-radius:50%;background:#059669;color:#fff;
+  font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.cm-name{font-weight:600;color:#111827}
+.cm-loc{font-size:11px;color:#6b7280}
+.cm-hora{font-size:12px;color:#059669;font-weight:600;white-space:nowrap}
+.cm-retorno{
+  background:linear-gradient(135deg,#eff6ff,#dbeafe);
+  border:1px solid #93c5fd;border-radius:10px;padding:12px 14px;
+  display:flex;align-items:center;gap:12px;
+}
+.cm-retorno__icon{font-size:24px}
+.cm-retorno__label{font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.5px}
+.cm-retorno__val{font-size:18px;font-weight:800;color:#1e40af}
+.cm-retorno__sub{font-size:11px;color:#3b82f6}
+
 /* ─── AI button en cabecera de tarjeta historial ─────────────────────────── */
 .h-ai-btn{
   display:inline-flex;align-items:center;gap:4px;
@@ -634,6 +678,18 @@ header{
   </div>
 </div>
 
+<!-- ══════════════════════ COMPLETION MODAL ══════════════════════ -->
+<div id="completionModal" style="display:none">
+  <div id="completionModalOverlay" onclick="closeCompletionModal()"></div>
+  <div id="completionModalBox">
+    <div id="completionModalHead">
+      <div id="completionModalTitle">🏁 Turno Finalizado</div>
+      <button id="completionModalClose" onclick="closeCompletionModal()">✕</button>
+    </div>
+    <div id="completionModalBody"></div>
+  </div>
+</div>
+
 <!-- ══════════════════════ TAB NAV ══════════════════════ -->
 <div id="tabNav">
   <button class="tab-btn active" data-tab="monitor">📡 En vivo</button>
@@ -726,6 +782,7 @@ const DISTRIB_COORDS = [-34.85727568509326, -58.379342026287354];
 ═══════════════════════════════════════════════════════════════ */
 const state = {
   pedidos: [], turno: '', fecha: '', repartidor: '', lastUpdate: null, filter: 'todos', connected: false,
+  completionShownKey: null,
 };
 
 /* ═══════════════════════════════════════════════════════════════
@@ -809,8 +866,8 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY, {
   realtime: { params: { eventsPerSecond: 10 } },
 });
 
-async function loadToday() {
-  setConn('sync', 'Actualizando…');
+async function loadToday(silent = false) {
+  if (!silent) setConn('sync', 'Actualizando…');
   try {
     const { data, error } = await sb
       .from('reparto_en_curso')
@@ -826,7 +883,7 @@ async function loadToday() {
     const rec = data?.[0];
     if (rec) applySnapshot(rec);
     else showWaiting();
-    setConn('ok', 'Tiempo real');
+    if (!silent) setConn('ok', 'Tiempo real');
   } catch(e) {
     console.error(e);
     setConn('err', 'Error de conexión');
@@ -886,10 +943,21 @@ function applySnapshot(rec) {
   renderList();
   scheduleMapUpdate();
 
-  const turnoCompleto = state.pedidos.every(p => p.entregado || p.devolucion);
+  const turnoCompleto  = state.pedidos.every(p => p.entregado || p.devolucion);
   const ningunaEntrega = state.pedidos.every(p => !p.entregado && !p.devolucion);
-  if (turnoCompleto) { showCompletionBanner(); hidePrepartoBanner(); }
-  else { hideCompletionBanner(); if (ningunaEntrega) showPrepartoBanner(); else hidePrepartoBanner(); }
+  if (turnoCompleto) {
+    showCompletionBanner();
+    hidePrepartoBanner();
+    const key = `${state.fecha}_${state.turno}`;
+    if (state.completionShownKey !== key) {
+      state.completionShownKey = key;
+      showCompletionModal();
+    }
+  } else {
+    hideCompletionBanner();
+    if (ningunaEntrega) showPrepartoBanner(); else hidePrepartoBanner();
+    state.completionShownKey = null;
+  }
 }
 
 function showPrepartoBanner() { $('prepartoBanner').style.display = 'flex'; }
@@ -1310,7 +1378,7 @@ function renderHistory(rends, reportMap = new Map()) {
       <div class="h-card">
         <div class="h-card__head" onclick="toggleHist(${i})">
           <div class="h-card__badges">
-            <span class="h-turno ${turnoLow}">${r.turno}</span>
+            <span class="h-turno ${turnoLow}">Turno ${r.turno}</span>
             ${aiBtnHtml}
           </div>
           <div class="h-card__info">
@@ -1505,6 +1573,80 @@ function hideCompletionBanner() {
   $('completionBanner').style.display = 'none';
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   COMPLETION MODAL
+═══════════════════════════════════════════════════════════════ */
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function showCompletionModal() {
+  const p = state.pedidos;
+
+  const delivered = p
+    .filter(x => x.entregado || x.devolucion)
+    .map(x => ({ ...x, _ts: x.horaEntrega || x.confirmedAt || null }))
+    .filter(x => x._ts)
+    .sort((a, b) => new Date(a._ts) - new Date(b._ts));
+
+  const orderHtml = delivered.length > 0
+    ? delivered.map((x, i) => `
+      <div class="cm-order-row">
+        <div class="cm-num">${i + 1}</div>
+        <div style="flex:1">
+          <div class="cm-name">${x.nombre || '—'}</div>
+          <div class="cm-loc">${x.localidad || ''}</div>
+        </div>
+        <div class="cm-hora">${fmtHora(x._ts)}</div>
+      </div>`).join('')
+    : '<div style="color:#6b7280;font-size:13px;padding:8px 0">Sin horarios registrados</div>';
+
+  let retornoHtml = '';
+  if (DISTRIB_COORDS && delivered.length > 0) {
+    const last   = delivered.at(-1);
+    const parts  = String(last.coordenadas || '').split(',');
+    if (parts.length === 2) {
+      const lastLat = parseFloat(parts[0]);
+      const lastLng = parseFloat(parts[1]);
+      if (!isNaN(lastLat) && !isNaN(lastLng)) {
+        const km   = haversineKm(lastLat, lastLng, DISTRIB_COORDS[0], DISTRIB_COORDS[1]);
+        const mins = Math.round(km / 35 * 60);
+        const kmStr = km < 10 ? km.toFixed(1) : Math.round(km);
+        retornoHtml = `
+          <div class="cm-section">
+            <div class="cm-section-title">🏭 Retorno al depósito</div>
+            <div class="cm-retorno">
+              <div class="cm-retorno__icon">🏠</div>
+              <div>
+                <div class="cm-retorno__label">Tiempo estimado</div>
+                <div class="cm-retorno__val">~${mins} min</div>
+                <div class="cm-retorno__sub">${kmStr} km en línea recta · velocidad estimada ~35 km/h</div>
+              </div>
+            </div>
+          </div>`;
+      }
+    }
+  }
+
+  $('completionModalTitle').textContent = `🏁 Turno ${state.turno} Finalizado`;
+  $('completionModalBody').innerHTML = `
+    <div class="cm-section">
+      <div class="cm-section-title">📦 Orden de entregas</div>
+      ${orderHtml}
+    </div>
+    ${retornoHtml}`;
+
+  $('completionModal').style.display = 'flex';
+}
+
+function closeCompletionModal() {
+  $('completionModal').style.display = 'none';
+}
+
 function showSetupState() {
   setConn('err', 'Tabla no existe aún');
   $('cardList').innerHTML = '';
@@ -1592,7 +1734,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadToday();
   subscribeRealtime();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
-  setInterval(loadToday, 10_000); // Cada 10s como respaldo si Realtime falla
+  setInterval(() => loadToday(true), 10_000); // Cada 10s como respaldo — silencioso para no parpadear
   const params = new URLSearchParams(location.search);
   if (params.get('tab') === 'historial') document.querySelector('[data-tab="historial"]')?.click();
 });
