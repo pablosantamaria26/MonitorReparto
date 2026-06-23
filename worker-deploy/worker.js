@@ -73,11 +73,19 @@ async function handleUpdateEntrega(request, env, corsHeaders) {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    // Normalizar campos: la app usa importePagado1/confirmedAt, el monitor espera importe1/horaEntrega
+    const pedidosNorm = pedidos.map(p => ({
+      ...p,
+      importe1:    Number(p.importePagado1 ?? p.importe1)    || 0,
+      importe2:    Number(p.importePagado2 ?? p.importe2)    || 0,
+      horaEntrega: p.horaEntrega || (p.entregado && p.confirmedAt ? p.confirmedAt : null),
+    }));
+
     await sbUpsert(env, 'reparto_en_curso', {
       fecha,
       turno,
-      pedidos,
-      updated_at: new Date().toISOString(),
+      pedidos    : pedidosNorm,
+      updated_at : new Date().toISOString(),
     }, 'fecha,turno');
     return new Response(JSON.stringify({ ok: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
