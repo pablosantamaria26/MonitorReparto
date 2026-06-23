@@ -97,7 +97,7 @@ function actualizarRepartoEnCurso_(hoja, filas) {
         };
       });
 
-    var resp = UrlFetchApp.fetch(SB_URL + '/rest/v1/reparto_en_curso', {
+    var resp = UrlFetchApp.fetch(SB_URL + '/rest/v1/reparto_en_curso?on_conflict=fecha,turno', {
       method:          'POST',
       contentType:     'application/json',
       headers: {

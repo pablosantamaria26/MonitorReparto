@@ -49,8 +49,9 @@ async function sbSelect(env, table, qs) {
   return res.json();
 }
 
-async function sbUpsert(env, table, data) {
-  const res = await fetch(`${env.SUPABASE_URL}/rest/v1/${table}`, {
+async function sbUpsert(env, table, data, onConflict = '') {
+  const qs  = onConflict ? `?on_conflict=${encodeURIComponent(onConflict)}` : '';
+  const res = await fetch(`${env.SUPABASE_URL}/rest/v1/${table}${qs}`, {
     method : 'POST',
     headers: {
       'Content-Type' : 'application/json',
@@ -77,7 +78,7 @@ async function handleUpdateEntrega(request, env, corsHeaders) {
       turno,
       pedidos,
       updated_at: new Date().toISOString(),
-    });
+    }, 'fecha,turno');
     return new Response(JSON.stringify({ ok: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
