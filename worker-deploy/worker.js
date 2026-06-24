@@ -208,13 +208,12 @@ Detalle de entregas en orden de reparto:
 ${detalleLineas.join('\n')}
 ${tiemposStr}${historialCtx}
 
-Escribí UN mensaje breve (máximo 2-3 oraciones) para ${repartidor} al cerrar su turno.
-Estilo: colega experimentado que le da un tip práctico antes de irse.
-Tono: informal argentino, positivo, concreto. No empieces con "¡Excelente!" ni frases genéricas.
-Si hay historial, hacé una comparación específica y útil con turnos anteriores.
-Podés mencionar clientes por nombre si es relevante (ej: el que no pagó, el que devolvió artículo).
-Si no hay historial, dá un consejo práctico basado en los datos de hoy.
-Solo el mensaje, sin firma ni encabezado.`;
+INSTRUCCIONES (seguir al pie de la letra):
+- Escribí EXACTAMENTE 2 oraciones. Ni una sola más, ni una menos.
+- Oración 1: mencioná un dato concreto de este turno — un número (efectivo, transferencias), un cliente por nombre (el que no pagó, el que devolvió), o una zona específica.
+- Oración 2: dá un tip práctico y útil para el próximo turno, basado en lo que pasó hoy. Si hay historial, comparalo con turnos anteriores.
+- Tono: informal argentino, directo, positivo pero sin exagerar. Sin saludos, sin "Copiloto dice", sin firma.
+- PROHIBIDO empezar con "¡Excelente!", "¡Tremendo!", "¡Genial!", "¡Bien!" ni ninguna exclamación vacía de una sola palabra.`;
 
     // ── Llamar a Gemini ───────────────────────────────────────────────────────
     const geminiRes = await fetch(`${GEMINI_URL}?key=${env.GEMINI_API_KEY}`, {
@@ -222,11 +221,16 @@ Solo el mensaje, sin firma ni encabezado.`;
       headers: { 'Content-Type': 'application/json' },
       body   : JSON.stringify({
         contents         : [{ parts: [{ text: prompt }] }],
-        generationConfig : { maxOutputTokens: 150, temperature: 0.85 },
+        generationConfig : {
+          maxOutputTokens : 400,
+          temperature     : 0.85,
+          thinkingConfig  : { thinkingBudget: 0 },  // desactiva thinking — respuesta directa
+        },
       }),
     });
     const gData   = await geminiRes.json();
-    const consejo = gData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
+    const parts   = gData?.candidates?.[0]?.content?.parts || [];
+    const consejo = parts.filter(p => !p.thought).map(p => p.text || '').join('').trim() || null;
 
     // ── Guardar en Supabase en background (no bloquea la respuesta) ───────────
     ctx.waitUntil(
