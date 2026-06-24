@@ -477,6 +477,14 @@ header{
 
 .h-card__body{display:none;border-top:1px solid var(--border)}
 .h-card__body.show{display:block}
+.h-copiloto{
+  padding:12px 16px;border-bottom:1px solid var(--violet-border);
+  background:linear-gradient(135deg,var(--violet-bg),var(--blue-bg));
+  display:flex;gap:10px;align-items:flex-start;
+}
+.h-copiloto__icon{font-size:18px;flex-shrink:0;line-height:1.4}
+.h-copiloto__label{font-size:10px;font-weight:700;color:var(--violet);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.h-copiloto__text{font-size:13px;color:var(--text);line-height:1.55}
 .h-tbl{width:100%;border-collapse:collapse}
 .h-tbl thead th{
   padding:8px 14px;text-align:left;font-size:11px;font-weight:700;
@@ -1328,7 +1336,7 @@ $('modal').addEventListener('click', e => { if (e.target === $('modal')) closeMo
 async function loadHistory() {
   $('histContent').innerHTML = `<div class="hist-empty">⏳ Cargando historial…</div>`;
   try {
-    const [{ data: rends, error: e1 }, { data: reportes }] = await Promise.all([
+    const [{ data: rends, error: e1 }, { data: reportes }, { data: copilotoData }] = await Promise.all([
       sb.from('rendiciones_reparto')
         .select('fecha,turno,repartidor,efectivo,transferencia,cheque,total,detalle_clientes')
         .order('fecha', { ascending: false })
@@ -1337,20 +1345,29 @@ async function loadHistory() {
         .select('fecha,turno,reporte_ia,ruta_optima,metricas')
         .order('created_at', { ascending: false })
         .limit(40),
+      sb.from('copiloto_historial')
+        .select('fecha,turno,repartidor,consejo')
+        .order('fecha', { ascending: false })
+        .limit(40),
     ]);
     if (e1) throw e1;
     const reportMap = new Map();
     (reportes || []).forEach(r => {
       const k = `${r.fecha}_${r.turno}`;
-      if (!reportMap.has(k)) reportMap.set(k, r); // primera = más reciente (created_at desc)
+      if (!reportMap.has(k)) reportMap.set(k, r);
     });
-    renderHistory(rends || [], reportMap);
+    const copilotoMap = new Map();
+    (copilotoData || []).forEach(c => {
+      const k = `${c.fecha}_${c.turno}`;
+      if (!copilotoMap.has(k)) copilotoMap.set(k, c);
+    });
+    renderHistory(rends || [], reportMap, copilotoMap);
   } catch(e) {
     $('histContent').innerHTML = `<div class="hist-empty">⚠️ Error al cargar: ${e.message}</div>`;
   }
 }
 
-function renderHistory(rends, reportMap = new Map()) {
+function renderHistory(rends, reportMap = new Map(), copilotoMap = new Map()) {
   if (!rends.length) {
     $('histContent').innerHTML = `<div class="hist-empty">📚 Sin rendiciones en Supabase aún.</div>`;
     return;
@@ -1395,6 +1412,7 @@ function renderHistory(rends, reportMap = new Map()) {
     const aiBtnHtml = aiRep?.reporte_ia
       ? `<button class="h-ai-btn" onclick="openAiModal(${i});event.stopPropagation()">🤖 Informe IA</button>`
       : '';
+    const cp = copilotoMap.get(`${r.fecha}_${r.turno}`);
     return `
       <div class="h-card">
         <div class="h-card__head" onclick="toggleHist(${i})">
@@ -1414,6 +1432,14 @@ function renderHistory(rends, reportMap = new Map()) {
           <span class="h-card__chevron" id="chev-${i}">▼</span>
         </div>
         <div class="h-card__body" id="hist-body-${i}">
+          ${cp?.consejo ? `
+          <div class="h-copiloto">
+            <div class="h-copiloto__icon">✈️</div>
+            <div>
+              <div class="h-copiloto__label">Copiloto Mercado Limpio</div>
+              <div class="h-copiloto__text">${cp.consejo}</div>
+            </div>
+          </div>` : ''}
           <table class="h-tbl">
             <thead><tr>
               <th>Nº</th><th>Cliente</th><th>Localidad</th><th>Total pagado</th><th>Estado</th>
