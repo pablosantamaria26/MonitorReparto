@@ -265,8 +265,13 @@ header{
   flex-shrink:0;width:24px;height:24px;border-radius:50%;
   background:var(--s3);border:1px solid var(--border);
   display:flex;align-items:center;justify-content:center;
-  font-size:10px;font-weight:800;color:var(--subtle);margin-top:1px;
+  font-size:10px;font-weight:800;color:var(--subtle);
 }
+.d-card__num--ent    {background:var(--green);border-color:var(--green-d);color:#fff}
+.d-card__num--ent-no {background:var(--green-bg);border-color:var(--green-border);color:var(--green-d)}
+.d-card__num-wrap    {display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;margin-top:1px}
+.d-card__num-label   {font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--muted)}
+.d-card__num-label.ent{color:var(--green-d)}
 .d-card__name{font-size:14px;font-weight:700;line-height:1.2;color:var(--text)}
 .d-card__loc{font-size:11px;color:var(--muted);margin-top:1px}
 .d-card__rows{display:flex;flex-direction:column;gap:3px}
@@ -1057,6 +1062,10 @@ function renderList() {
     if (diff >= 0) intervalMap.set(deliveredSorted[i].numeroCliente, diff);
   }
 
+  // Orden de entrega real (cronológico por horaEntrega)
+  const deliveryOrderMap = new Map();
+  deliveredSorted.forEach((p, i) => deliveryOrderMap.set(p.numeroCliente, i + 1));
+
   list.innerHTML = '';
   if (!filtered.length) {
     list.appendChild(createEmptyState('🔍', 'Sin resultados', 'No hay pedidos en esta categoría.'));
@@ -1070,21 +1079,33 @@ function renderList() {
       sep.innerHTML = `<div class="interval-line"></div><div class="interval-badge">⏱ ${interval} min</div><div class="interval-line"></div>`;
       list.appendChild(sep);
     }
-    list.appendChild(createCard(p, idx + 1));
+    list.appendChild(createCard(p, deliveryOrderMap));
   });
 }
 
-function createCard(p, n) {
+function createCard(p, deliveryOrderMap) {
   const isDone = p.entregado || p.devolucion;
   const isDev  = p.devolucion;
   const pago   = buildPago(p);
   const hora   = fmtHora(p.horaEntrega);
   const cls    = isDone ? 'is-entregado' : 'is-pendiente';
 
+  // Número en el círculo: entregados → orden real de entrega; pendientes → orden de ruta
+  const deliveryNum  = isDone ? (deliveryOrderMap.get(p.numeroCliente) ?? null) : null;
+  const numLabel     = deliveryNum !== null ? deliveryNum : (isDone ? '✓' : (p.orden || '?'));
+  const numCls       = deliveryNum !== null ? 'd-card__num d-card__num--ent'
+                     : isDone              ? 'd-card__num d-card__num--ent-no'
+                     :                       'd-card__num';
+  const numSubLabel  = isDone ? 'ent.' : 'ruta';
+  const numSubCls    = isDone ? 'ent' : '';
+
   const card = el('div', `d-card ${cls}`);
   card.innerHTML = `
     <div class="d-card__top">
-      <div class="d-card__num">${n}</div>
+      <div class="d-card__num-wrap">
+        <div class="${numCls}">${numLabel}</div>
+        <div class="d-card__num-label ${numSubCls}">${numSubLabel}</div>
+      </div>
       <div style="flex:1">
         <div class="d-card__name">Nº ${p.numeroCliente} — ${p.nombre}</div>
         <div class="d-card__loc">📍 ${p.localidad || ''}</div>
