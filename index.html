@@ -338,7 +338,7 @@ header{
 #completionInner{padding:16px 18px}
 #completionTitle{
   font-size:17px;font-weight:900;color:#065f46;
-  margin-bottom:12px;display:flex;align-items:center;gap:8px;
+  margin-bottom:12px;display:flex;align-items:center;gap:8px;justify-content:space-between;
 }
 #completionMetrics{
   display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
@@ -351,6 +351,35 @@ header{
 .comp-stat__label{font-size:10px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
 .comp-stat__val{font-size:17px;font-weight:800;color:#065f46}
 .comp-stat__sub{font-size:11px;color:#047857;margin-top:2px}
+
+/* Variante "rendición enviada" (post-envío, durante la ventana de gracia) */
+#completionBanner.is-sent{
+  background:linear-gradient(135deg,#ecfdf5,#dbeafe);
+  border-color:#6ee7b7;
+  box-shadow:0 4px 24px rgba(16,185,129,.28);
+}
+.comp-sent-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  background:#059669;color:#fff;border-radius:999px;
+  padding:3px 10px;font-size:11px;font-weight:800;letter-spacing:.3px;
+  margin-left:auto;flex-shrink:0;
+  animation:fadeUp .3s ease;
+}
+.comp-autoclear{
+  font-size:11px;color:#047857;opacity:.85;margin-top:10px;
+  display:flex;align-items:center;gap:5px;
+}
+/* Copiloto embebido en el banner de finalización (mismo lenguaje visual que el historial) */
+.comp-copiloto{
+  margin-top:12px;padding:12px 14px;border-radius:10px;
+  background:linear-gradient(135deg,var(--violet-bg),var(--blue-bg));
+  border:1px solid var(--violet-border);
+  display:flex;gap:10px;align-items:flex-start;
+  animation:fadeUp .3s ease;
+}
+.comp-copiloto__icon{font-size:18px;flex-shrink:0;line-height:1.4}
+.comp-copiloto__label{font-size:10px;font-weight:700;color:var(--violet);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.comp-copiloto__text{font-size:13px;color:var(--text);line-height:1.55}
 
 /* ─── Completion modal ───────────────────────────────────────────────────── */
 #completionModal{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center}
@@ -722,8 +751,21 @@ header{
 <!-- ══════════════════════ TURNO COMPLETO BANNER ══════════════════════ -->
 <div id="completionBanner" style="display:none">
   <div id="completionInner">
-    <div id="completionTitle">🏁 Turno completado</div>
+    <div id="completionTitle">
+      <span id="completionTitleTxt">🏁 Turno completado</span>
+      <span id="completionSentBadge" class="comp-sent-badge" style="display:none">✅ Rendición enviada</span>
+    </div>
     <div id="completionMetrics"></div>
+    <div id="completionCopiloto" class="comp-copiloto" style="display:none">
+      <div class="comp-copiloto__icon">✈️</div>
+      <div>
+        <div class="comp-copiloto__label">Copiloto Mercado Limpio</div>
+        <div class="comp-copiloto__text" id="completionCopilotoTxt"></div>
+      </div>
+    </div>
+    <div id="completionAutoclear" class="comp-autoclear" style="display:none">
+      🕒 Este resumen se limpia solo en unos minutos, o apenas arranque el próximo turno.
+    </div>
   </div>
 </div>
 
@@ -832,7 +874,9 @@ const DISTRIB_COORDS = [-34.85727568509326, -58.379342026287354];
 const state = {
   pedidos: [], turno: '', fecha: '', repartidor: '', lastUpdate: null, filter: 'todos', connected: false,
   completionShownKey: null,
+  graceHold: false, graceTimer: null, completionCopiloto: null,
 };
+const GRACE_MS = 15 * 60 * 1000; // cuánto se retiene el resumen en pantalla tras enviar la rendición
 
 /* ═══════════════════════════════════════════════════════════════
    UTILS
@@ -936,18 +980,60 @@ async function loadToday(silent = false) {
     }
     const rec = data?.[0];
     if (rec) applySnapshot(rec);
-    else showWaiting();
+    else if (!state.graceHold) showWaiting(); // en ventana de gracia: retener el resumen aunque la fila ya no exista
     if (!silent) setConn('ok', 'Tiempo real');
   } catch(e) {
     console.error(e);
     setConn('err', 'Error de conexión');
-    showWaiting();
+    if (!state.graceHold) showWaiting();
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VENTANA DE GRACIA POST-RENDICIÓN
+   Cuando se envía la rendición, el backend borra la fila de
+   reparto_en_curso casi al instante. En vez de saltar directo a
+   "esperando turno", retenemos el resumen final en pantalla un
+   rato (GRACE_MS) para que se pueda leer mientras el repartidor
+   vuelve al depósito — y sumamos el consejo del Copiloto.
+═══════════════════════════════════════════════════════════════ */
+async function fetchLastCopiloto(fecha, turno, repartidor) {
+  if (!fecha || !turno || !repartidor) return null;
+  try {
+    const { data } = await sb.from('copiloto_historial')
+      .select('consejo')
+      .eq('fecha', fecha).eq('turno', turno).eq('repartidor', repartidor)
+      .order('fecha', { ascending: false })
+      .limit(1);
+    return data?.[0]?.consejo || null;
+  } catch (_) { return null; }
+}
+
+function handleRendicionSentDetected() {
+  const wasComplete = state.pedidos.length > 0 && state.pedidos.every(p => p.entregado || p.devolucion);
+  if (!wasComplete || state.graceHold) return; // nada relevante que retener, o ya se está reteniendo
+
+  state.graceHold = true;
+  showCompletionBanner(); // pasa a modo "rendición enviada" (badge + nota de autolimpieza) ya mismo
+
+  fetchLastCopiloto(state.fecha, state.turno, state.repartidor).then(txt => {
+    if (!state.graceHold) return; // se canceló mientras tanto (arrancó un turno nuevo)
+    state.completionCopiloto = txt;
+    if (txt) showCompletionBanner();
+  });
+
+  clearTimeout(state.graceTimer);
+  state.graceTimer = setTimeout(() => {
+    state.graceHold = false;
+    state.completionCopiloto = null;
+    showWaiting();
+  }, GRACE_MS);
 }
 
 function subscribeRealtime() {
   sb.channel('monitor-live')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'reparto_en_curso' }, payload => {
+      if (payload.eventType === 'DELETE') { handleRendicionSentDetected(); return; }
       const rec = payload.new;
       // Aceptar cualquier UPDATE/INSERT — si no hay fecha coincidente, recargar del server
       if (!rec) return;
@@ -975,6 +1061,13 @@ function subscribeRealtime() {
    APPLY SNAPSHOT
 ═══════════════════════════════════════════════════════════════ */
 function applySnapshot(rec) {
+  // Llegaron datos frescos y en vivo: si estábamos reteniendo el resumen de un turno
+  // ya rendido, cancelamos la ventana de gracia — hay un turno nuevo que mostrar.
+  if (state.graceHold) {
+    clearTimeout(state.graceTimer);
+    state.graceHold = false;
+    state.completionCopiloto = null;
+  }
   state.pedidos    = Array.isArray(rec.pedidos) ? rec.pedidos : [];
   state.turno      = rec.turno      || '';
   state.fecha      = rec.fecha      || '';
@@ -1647,6 +1740,10 @@ function showCompletionBanner() {
 
   const totalRec = k.efectivo + k.transferencia + k.cheque;
   const devNote  = k.devoluciones > 0 ? `${k.devoluciones} con devolución` : 'sin devoluciones';
+  const recPartes = [];
+  if (k.efectivo > 0)      recPartes.push(`Ef $${money(k.efectivo)}`);
+  if (k.transferencia > 0) recPartes.push(`Tr $${money(k.transferencia)}`);
+  if (k.cheque > 0)        recPartes.push(`Ch $${money(k.cheque)}`);
 
   const stats = [
     { label: 'Pedidos entregados', val: String(k.entregados), sub: devNote },
@@ -1654,7 +1751,7 @@ function showCompletionBanner() {
     { label: 'Promedio parada',    val: k.avgTime !== null ? `${k.avgTime} min` : '—', sub: 'entre entregas' },
     { label: 'Más rápido',        val: fastest !== Infinity ? `${fastest} min` : '—', sub: 'entre paradas' },
     { label: 'Más lento',         val: slowest > 0 ? `${slowest} min` : '—',          sub: 'entre paradas' },
-    { label: 'Total recaudado',   val: `$ ${money(totalRec)}`, sub: `Ef $${money(k.efectivo)} · Tr $${money(k.transferencia)}` },
+    { label: 'Total recaudado',   val: `$ ${money(totalRec)}`, sub: recPartes.join(' · ') || 'sin cobros' },
   ];
 
   $('completionMetrics').innerHTML = stats.map(s => `
@@ -1663,6 +1760,21 @@ function showCompletionBanner() {
       <div class="comp-stat__val">${s.val}</div>
       <div class="comp-stat__sub">${s.sub}</div>
     </div>`).join('');
+
+  // Título distinto según si la rendición ya se envió (grace hold) o si solo están todas las entregas hechas
+  $('completionBanner').classList.toggle('is-sent', state.graceHold);
+  $('completionTitleTxt').textContent = state.graceHold
+    ? `🏁 Turno ${state.turno || ''} finalizado`
+    : `✅ Turno ${state.turno || ''} — todas las entregas completas`;
+  $('completionSentBadge').style.display = state.graceHold ? '' : 'none';
+  $('completionAutoclear').style.display = state.graceHold ? 'flex' : 'none';
+
+  if (state.graceHold && state.completionCopiloto) {
+    $('completionCopilotoTxt').textContent = state.completionCopiloto;
+    $('completionCopiloto').style.display = 'flex';
+  } else {
+    $('completionCopiloto').style.display = 'none';
+  }
 
   $('completionBanner').style.display = '';
 }
@@ -1730,7 +1842,7 @@ function showCompletionModal() {
     }
   }
 
-  $('completionModalTitle').textContent = `🏁 Turno ${state.turno} Finalizado`;
+  $('completionModalTitle').textContent = `✅ Turno ${state.turno} — Todas las entregas completas`;
   $('completionModalBody').innerHTML = `
     <div class="cm-section">
       <div class="cm-section-title">📦 Orden de entregas</div>
