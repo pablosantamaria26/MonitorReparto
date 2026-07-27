@@ -255,17 +255,28 @@ header{
 #cardList::-webkit-scrollbar{width:4px}
 #cardList::-webkit-scrollbar-thumb{background:var(--border);border-radius:999px}
 
-/* Delivery card */
+/* Delivery card — modern redesign */
 .d-card{
   background:var(--s1);border:1px solid var(--border);border-radius:var(--rm);
-  padding:10px 12px;cursor:pointer;margin-bottom:6px;
-  transition:all var(--transition);
-  animation:fadeUp .25s ease;box-shadow:var(--shadow);
+  padding:10px 12px 9px 16px;cursor:pointer;margin-bottom:6px;
+  transition:all var(--transition);box-shadow:var(--shadow);
+  position:relative;overflow:hidden;
 }
-.d-card:hover{border-color:var(--border-h);transform:translateY(-1px);box-shadow:var(--shadow-md)}
-.d-card.is-entregado{border-left:4px solid var(--green);background:linear-gradient(to right,rgba(16,185,129,.06),transparent 90px)}
-.d-card.is-pendiente{border-left:4px solid var(--amber);background:linear-gradient(to right,rgba(245,158,11,.05),transparent 90px)}
+/* Left accent strip */
+.d-card::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:4px 0 0 4px;
+}
+.d-card.is-entregado{background:linear-gradient(to right,rgba(16,185,129,.06) 0%,transparent 110px)}
+.d-card.is-entregado::before{background:linear-gradient(to bottom,var(--green),var(--green-d))}
+.d-card.is-pendiente{background:linear-gradient(to right,rgba(245,158,11,.05) 0%,transparent 110px)}
+.d-card.is-pendiente::before{background:linear-gradient(to bottom,var(--amber),var(--amber-d));animation:strip-pulse 2.4s ease-in-out infinite}
+@keyframes strip-pulse{0%,100%{opacity:.55}50%{opacity:1}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes flash-green{0%{background:rgba(16,185,129,.18)}100%{background:transparent}}
+.d-card--new{animation:fadeUp .25s ease}
+.d-card--flash{animation:flash-green .55s ease}
+.d-card:hover{border-color:var(--border-h);transform:translateY(-1px);box-shadow:var(--shadow-md)}
+.d-card:active{transform:scale(.99)}
 
 /* Interval separator */
 .interval-sep{
@@ -278,31 +289,44 @@ header{
   border-radius:999px;padding:2px 8px;white-space:nowrap;flex-shrink:0;
 }
 
-.d-card__top{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
-.d-card__num{
-  flex-shrink:0;width:24px;height:24px;border-radius:50%;
-  background:var(--s3);border:1px solid var(--border);
+/* Card header row */
+.d-card__top{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+
+/* Order badge (rounded square) */
+.d-card__badge{
+  flex-shrink:0;min-width:28px;height:28px;padding:0 5px;border-radius:8px;
   display:flex;align-items:center;justify-content:center;
-  font-size:10px;font-weight:800;color:var(--subtle);
+  font-size:12px;font-weight:800;
 }
-.d-card__num--ent    {background:var(--green);border-color:var(--green-d);color:#fff}
-.d-card__num--ent-no {background:var(--green-bg);border-color:var(--green-border);color:var(--green-d)}
-.d-card__num-wrap    {display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;margin-top:1px}
-.d-card__num-label   {font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--muted)}
-.d-card__num-label.ent{color:var(--green-d)}
-.d-card__name{font-size:14px;font-weight:700;line-height:1.2;color:var(--text)}
+.d-card__badge.delivered{background:var(--green);color:#fff;box-shadow:0 2px 6px rgba(16,185,129,.35)}
+.d-card__badge.pending{background:var(--amber-bg);border:1.5px solid var(--amber-border);color:var(--amber-d)}
+
+/* Name + location */
+.d-card__main{flex:1;min-width:0}
+.d-card__name{font-size:13.5px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .d-card__loc{font-size:11px;color:var(--muted);margin-top:1px}
-.d-card__rows{display:flex;flex-direction:column;gap:3px}
-.d-card__row{font-size:12px;color:var(--subtle)}
-.d-card__bottom{display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:6px;border-top:1px solid var(--border)}
-.d-card__importe{font-size:13px;font-weight:700;color:var(--text)}
+
+/* Compact status tag */
+.d-card__status{
+  flex-shrink:0;display:inline-flex;align-items:center;gap:4px;
+  padding:4px 10px;border-radius:999px;font-size:11.5px;font-weight:700;
+}
+.d-card__status.ok{background:var(--green);color:#fff}
+.d-card__status.pend{background:var(--amber-bg);border:1px solid var(--amber-border);color:var(--amber-d)}
+
+/* Meta row: time + payment + importe */
+.d-card__meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.d-card__meta-item{font-size:12px;color:var(--subtle)}
+.d-card__meta-importe{font-size:13px;font-weight:800;color:var(--text);margin-left:auto}
+
+/* Keep for modal */
 .status-pill{
   display:inline-flex;align-items:center;gap:5px;
   padding:5px 14px;border-radius:999px;font-size:13px;font-weight:800;letter-spacing:.3px;
 }
 .status-pill.ok{background:var(--green);color:#fff;border:none;box-shadow:0 2px 8px rgba(16,185,129,.35)}
-.status-pill.pend{background:var(--amber);color:#fff;border:none;box-shadow:0 2px 8px rgba(245,158,11,.35);animation:pulse-pend 2s ease-in-out infinite}
-@keyframes pulse-pend{0%,100%{box-shadow:0 2px 8px rgba(245,158,11,.35)}50%{box-shadow:0 2px 16px rgba(245,158,11,.6)}}
+.status-pill.pend{background:var(--amber);color:#fff;border:none;box-shadow:0 2px 8px rgba(245,158,11,.35)}
+
 .d-card__dev-note{font-size:11px;color:var(--green-text);background:var(--green-bg);border:1px solid var(--green-border);border-radius:6px;padding:2px 8px;margin-top:4px;display:inline-block}
 
 /* ─── Preparto banner (reparto cargado, aún sin entregas) ───────────────── */
@@ -1173,15 +1197,69 @@ function renderKPIs() {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   LIST with delivery interval separators
+   LIST — keyed reconciliation (sin parpadeo)
+   Los nodos DOM existentes se reusan/reordenan en lugar de borrar
+   y redibujar toda la lista con cada actualización de Supabase.
 ═══════════════════════════════════════════════════════════════ */
+function cardVersion(p) {
+  return `${p.entregado?1:0}|${p.devolucion?1:0}|${p.horaEntrega||''}|${p.importe1||0}|${p.importe2||0}|${p.notasDevolucion||''}`;
+}
+
+function buildCardHTML(p, deliveryOrderMap) {
+  const isDone = p.entregado || p.devolucion;
+  const isDev  = p.devolucion;
+  const pago   = buildPago(p);
+  const hora   = fmtHora(p.horaEntrega);
+  const deliveryNum = isDone ? (deliveryOrderMap.get(p.numeroCliente) ?? null) : null;
+  const numLabel    = deliveryNum !== null ? deliveryNum : (isDone ? '✓' : (p.orden || '?'));
+  const badgeCls    = isDone ? 'delivered' : 'pending';
+  const statusCls   = isDone ? 'ok' : 'pend';
+  const statusTxt   = isDone ? '✅ Ent.' : '⏳ En ruta';
+  return `
+    <div class="d-card__top">
+      <div class="d-card__badge ${badgeCls}">${numLabel}</div>
+      <div class="d-card__main">
+        <div class="d-card__name">Nº ${p.numeroCliente} — ${p.nombre}</div>
+        <div class="d-card__loc">📍 ${p.localidad || ''}</div>
+      </div>
+      <span class="d-card__status ${statusCls}">${statusTxt}</span>
+    </div>
+    ${isDev ? `<div class="d-card__dev-note">↩ Con devolución${p.notasDevolucion ? ': ' + p.notasDevolucion : ''}</div>` : ''}
+    <div class="d-card__meta">
+      ${hora ? `<span class="d-card__meta-item">🕐 ${hora}</span>` : ''}
+      ${pago ? `<span class="d-card__meta-item">💳 ${pago}</span>` : ''}
+      <span class="d-card__meta-importe">$ ${money(p.importeTotal)}</span>
+    </div>`;
+}
+
+function createCard(p, deliveryOrderMap) {
+  const isDone = p.entregado || p.devolucion;
+  const card = el('div', `d-card ${isDone ? 'is-entregado' : 'is-pendiente'} d-card--new`);
+  card.dataset.listKey = `card_${p.numeroCliente}`;
+  card.dataset.cardVer = cardVersion(p);
+  card.innerHTML = buildCardHTML(p, deliveryOrderMap);
+  card.addEventListener('click', () => openModal(p));
+  return card;
+}
+
+function updateCardInPlace(node, p, deliveryOrderMap) {
+  const ver = cardVersion(p);
+  if (node.dataset.cardVer === ver) return;
+  const isDone = p.entregado || p.devolucion;
+  const wasEntregado = node.classList.contains('is-entregado');
+  node.className = `d-card ${isDone ? 'is-entregado' : 'is-pendiente'}`;
+  node.innerHTML = buildCardHTML(p, deliveryOrderMap);
+  node.dataset.cardVer = ver;
+  node.onclick = () => openModal(p);
+  if (isDone && !wasEntregado) node.classList.add('d-card--flash');
+}
+
 function renderList() {
   const list = $('cardList');
   const pedidos = state.pedidos;
 
   if (!pedidos.length) {
-    list.innerHTML = '';
-    list.appendChild(createEmptyState('🚚', 'Sin pedidos', 'Aún no hay datos para este turno.'));
+    list.replaceChildren(createEmptyState('🚚', 'Sin pedidos', 'Aún no hay datos para este turno.'));
     return;
   }
 
@@ -1193,15 +1271,14 @@ function renderList() {
 
   filtered.sort((a, b) => {
     const da = a.entregado || a.devolucion, db = b.entregado || b.devolucion;
-    if (!da && db) return -1;  // pendientes primero
+    if (!da && db) return -1;
     if (da && !db) return 1;
-    if (!da && !db) return (a.orden||999) - (b.orden||999);  // pendientes por orden de ruta
+    if (!da && !db) return (a.orden||999) - (b.orden||999);
     const ta = a.horaEntrega ? new Date(a.horaEntrega).getTime() : Infinity;
     const tb = b.horaEntrega ? new Date(b.horaEntrega).getTime() : Infinity;
-    return ta - tb;  // entregados cronológicamente
+    return ta - tb;
   });
 
-  // Build interval map for delivered items
   const deliveredSorted = filtered
     .filter(p => (p.entregado || p.devolucion) && p.horaEntrega)
     .sort((a, b) => new Date(a.horaEntrega) - new Date(b.horaEntrega));
@@ -1214,67 +1291,57 @@ function renderList() {
     if (diff >= 0) intervalMap.set(deliveredSorted[i].numeroCliente, diff);
   }
 
-  // Orden de entrega real (cronológico por horaEntrega)
   const deliveryOrderMap = new Map();
   deliveredSorted.forEach((p, i) => deliveryOrderMap.set(p.numeroCliente, i + 1));
 
-  list.innerHTML = '';
   if (!filtered.length) {
-    list.appendChild(createEmptyState('🔍', 'Sin resultados', 'No hay pedidos en esta categoría.'));
+    list.replaceChildren(createEmptyState('🔍', 'Sin resultados', 'No hay pedidos en esta categoría.'));
     return;
   }
 
-  filtered.forEach((p, idx) => {
+  // Indexar nodos DOM existentes por su clave
+  const oldNodes = new Map();
+  for (const child of list.children) {
+    const k = child.dataset.listKey;
+    if (k) oldNodes.set(k, child);
+  }
+
+  const showSep = filter === 'todos' || filter === 'entregados' || filter === 'devoluciones';
+  const newNodes = [];
+
+  filtered.forEach(p => {
     const interval = intervalMap.get(p.numeroCliente);
-    if (interval !== undefined && (filter === 'todos' || filter === 'entregados' || filter === 'devoluciones')) {
-      const sep = el('div', 'interval-sep');
+    if (interval !== undefined && showSep) {
+      const sepKey = `sep_${p.numeroCliente}`;
+      let sep = oldNodes.get(sepKey);
+      if (!sep) {
+        sep = el('div', 'interval-sep');
+        sep.dataset.listKey = sepKey;
+      } else {
+        oldNodes.delete(sepKey);
+      }
       sep.innerHTML = `<div class="interval-line"></div><div class="interval-badge">⏱ ${interval} min</div><div class="interval-line"></div>`;
-      list.appendChild(sep);
+      newNodes.push(sep);
     }
-    list.appendChild(createCard(p, deliveryOrderMap));
+
+    const cardKey = `card_${p.numeroCliente}`;
+    let card = oldNodes.get(cardKey);
+    if (!card) {
+      card = createCard(p, deliveryOrderMap);
+    } else {
+      oldNodes.delete(cardKey);
+      updateCardInPlace(card, p, deliveryOrderMap);
+    }
+    newNodes.push(card);
   });
-}
 
-function createCard(p, deliveryOrderMap) {
-  const isDone = p.entregado || p.devolucion;
-  const isDev  = p.devolucion;
-  const pago   = buildPago(p);
-  const hora   = fmtHora(p.horaEntrega);
-  const cls    = isDone ? 'is-entregado' : 'is-pendiente';
+  // Eliminar nodos que ya no corresponden
+  oldNodes.forEach(node => node.remove());
 
-  // Número en el círculo: entregados → orden real de entrega; pendientes → orden de ruta
-  const deliveryNum  = isDone ? (deliveryOrderMap.get(p.numeroCliente) ?? null) : null;
-  const numLabel     = deliveryNum !== null ? deliveryNum : (isDone ? '✓' : (p.orden || '?'));
-  const numCls       = deliveryNum !== null ? 'd-card__num d-card__num--ent'
-                     : isDone              ? 'd-card__num d-card__num--ent-no'
-                     :                       'd-card__num';
-  const numSubLabel  = isDone ? 'ent.' : 'ruta';
-  const numSubCls    = isDone ? 'ent' : '';
-
-  const card = el('div', `d-card ${cls}`);
-  card.innerHTML = `
-    <div class="d-card__top">
-      <div class="d-card__num-wrap">
-        <div class="${numCls}">${numLabel}</div>
-        <div class="d-card__num-label ${numSubCls}">${numSubLabel}</div>
-      </div>
-      <div style="flex:1">
-        <div class="d-card__name">Nº ${p.numeroCliente} — ${p.nombre}</div>
-        <div class="d-card__loc">📍 ${p.localidad || ''}</div>
-      </div>
-      <span class="status-pill ${isDone?'ok':'pend'}">${isDone ? '✅ Entregado' : '⏳ Pendiente'}</span>
-    </div>
-    <div class="d-card__rows">
-      ${isDev ? `<div class="d-card__dev-note">↩ Con devolución${p.notasDevolucion ? ': ' + p.notasDevolucion : ''}</div>` : ''}
-      ${hora ? `<div class="d-card__row">🕐 <strong>${hora}</strong></div>` : ''}
-      ${pago ? `<div class="d-card__row">💳 ${pago}</div>` : ''}
-    </div>
-    <div class="d-card__bottom">
-      <span class="d-card__importe">$ ${money(p.importeTotal)}</span>
-    </div>`;
-
-  card.addEventListener('click', () => openModal(p));
-  return card;
+  // Reordenar el DOM en una sola operación atómica (sin parpadeo)
+  const frag = document.createDocumentFragment();
+  newNodes.forEach(n => frag.appendChild(n));
+  list.appendChild(frag);
 }
 
 function createEmptyState(icon, title, sub) {
