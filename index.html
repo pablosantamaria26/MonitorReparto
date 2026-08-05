@@ -215,13 +215,23 @@ header{
 /* ─── Monitor view: split layout ─────────────────────────────────────────── */
 #splitWrap{display:flex;flex:1;overflow:hidden}
 
-#mapPanel{flex:0 0 48%;max-width:48%;position:relative;min-width:0}
+/* El mapa tenía un ancho fijo de 48% del viewport SIEMPRE — en una pantalla
+   grande eso significa que crece sin límite aunque la ruta no necesite tanto
+   lugar, y la lista (donde está toda la info densa: nombre, estado, monto)
+   se queda pegada al otro 52% para siempre, sin aprovechar el espacio extra
+   de una pantalla ancha. Con clamp() el mapa crece hasta un tope cómodo
+   (640px) y después TODO el ancho de más que gane la pantalla se lo lleva
+   la lista (flex:1, sin max-width) — se adapta solo, sin volver a tocar esto
+   por cada resolución nueva. No toca el eje vertical de #cardList, así que
+   no afecta el fix de flex-shrink de las tarjetas.
+   #mapPanel usa flex-basis vía clamp(); flex-grow:0 así no se pasa del tope. */
+#mapPanel{flex:0 1 clamp(360px, 40vw, 640px);position:relative;min-width:280px}
 #map{position:absolute;inset:0}
 
 #listPanel{
   flex:1;display:flex;flex-direction:column;
   border-left:1px solid var(--border);background:var(--s1);
-  overflow:hidden;min-width:320px;
+  overflow:hidden;min-width:360px;
 }
 
 /* Filter pills */
@@ -911,7 +921,7 @@ const DISTRIB_COORDS = [-34.85727568509326, -58.379342026287354];
 // Se bumpea junto con version.json en cada publicación — permite detectar
 // código desactualizado aunque el Service Worker haya quedado pegado a una
 // versión vieja (ver chequearActualizacion() al final del script).
-const APP_VERSION = '20260805-150754';
+const APP_VERSION = '20260805-151619';
 
 /* ═══════════════════════════════════════════════════════════════
    STATE
