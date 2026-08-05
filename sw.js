@@ -47,11 +47,14 @@ self.addEventListener('fetch', e => {
   // hasta 10 minutos en llegarle a quien reabre la app (o nunca, si la
   // pestaña queda reanudada en vez de recargada).
   const isNav = e.request.mode === 'navigate' || e.request.url.endsWith('/index.html') || e.request.url.endsWith('/');
+  const isVersion = e.request.url.includes('/version.json');
   e.respondWith(
-    fetch(e.request, isNav ? { cache: 'no-store' } : {})
+    fetch(e.request, (isNav || isVersion) ? { cache: 'no-store' } : {})
       .then(res => {
-        // Cache successful responses
-        if (res.ok && e.request.method === 'GET') {
+        // Cache successful responses (version.json queda afuera: el chequeo le agrega
+        // ?t=timestamp para saltar el caché HTTP, y cada uno quedaría como entrada
+        // nueva en Cache Storage para siempre si se cachea — un leak lento)
+        if (res.ok && e.request.method === 'GET' && !isVersion) {
           const clone = res.clone();
           caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
         }

@@ -891,6 +891,10 @@ const SB_URL = 'https://gjeyvbidomxzofcdycya.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqZXl2Ymlkb214em9mY2R5Y3lhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzIyNzkzMCwiZXhwIjoyMDg4ODAzOTMwfQ.PDN9bfQxnD-COifvPFAbw_1ecAi57hxEFQ2aZDfDqZQ';
 const DISTRIB_ADDR   = 'Languehein 1095, Longchamps, Buenos Aires, Argentina';
 const DISTRIB_COORDS = [-34.85727568509326, -58.379342026287354];
+// Se bumpea junto con version.json en cada publicación — permite detectar
+// código desactualizado aunque el Service Worker haya quedado pegado a una
+// versión vieja (ver chequearActualizacion() al final del script).
+const APP_VERSION = '20260805-144241';
 
 /* ═══════════════════════════════════════════════════════════════
    STATE
@@ -2023,6 +2027,38 @@ document.addEventListener('DOMContentLoaded', () => {
   const params = new URLSearchParams(location.search);
   if (params.get('tab') === 'historial') document.querySelector('[data-tab="historial"]')?.click();
 });
+
+/* ═══════════════════════════════════════════════════════════════
+   ACTUALIZACIÓN GARANTIZADA — un Service Worker que quedó "pegado" a una
+   versión vieja (o una pestaña que Windows deja reanudada en vez de
+   recargar) puede seguir corriendo JS desactualizado indefinidamente sin
+   que un refresh normal lo note. Esto chequea la versión activamente
+   (con cache:'no-store', salteando el caché HTTP) al abrir, al volver a
+   la pestaña, y cada pocos minutos — si detecta código viejo, recarga sola.
+═══════════════════════════════════════════════════════════════ */
+async function chequearActualizacion() {
+  try {
+    const r = await fetch('./version.json?t=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) return;
+    const d = await r.json();
+    if (d.v && d.v !== APP_VERSION) aplicarActualizacion();
+  } catch (e) { /* sin señal — se reintenta en el próximo chequeo */ }
+}
+function aplicarActualizacion() {
+  const key = 'mr_reload_guard';
+  let g; try { g = JSON.parse(sessionStorage.getItem(key) || '{}'); } catch (e) { g = {}; }
+  const ahora = Date.now();
+  if (!g.ts || ahora - g.ts > 60000) g = { ts: ahora, n: 0 };
+  g.n = (g.n || 0) + 1;
+  sessionStorage.setItem(key, JSON.stringify(g));
+  if (g.n > 4) { console.warn('Actualización: demasiados intentos de recarga, se pausa por esta vez.'); return; }
+  toast('ok', '🔄 Actualizando…', 'Hay una versión nueva — recargando en un segundo.');
+  setTimeout(() => location.reload(), 1200);
+}
+setTimeout(chequearActualizacion, 3000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) chequearActualizacion(); });
+window.addEventListener('focus', () => chequearActualizacion());
+setInterval(chequearActualizacion, 3 * 60 * 1000);
 </script>
 </body>
 </html>
