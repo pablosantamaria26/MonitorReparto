@@ -1263,6 +1263,14 @@ function renderList() {
     return;
   }
 
+  // #emptyMonitor es un placeholder estático que viene escrito en el HTML
+  // (para que se vea algo antes de que cargue el JS). Este render usa un
+  // diffing por data-list-key que solo administra los nodos que él mismo
+  // crea — el placeholder estático nunca tiene esa key, así que si sigue
+  // en el DOM cuando llegan pedidos reales, queda pegado arriba de la
+  // lista para siempre en vez de desaparecer.
+  document.getElementById('emptyMonitor')?.remove();
+
   const filter = state.filter;
   let filtered = [...pedidos];
   if (filter === 'pendientes')   filtered = pedidos.filter(p => !p.entregado && !p.devolucion);
