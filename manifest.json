@@ -3,7 +3,7 @@
   "short_name": "Monitor",
   "description": "Control en tiempo real del reparto — Mercado Limpio",
   "start_url": "./",
-  "id": "./",
+  "id": "https://pablosantamaria26.github.io/MonitorReparto/",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone"],
   "background_color": "#f0f4ff",
