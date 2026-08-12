@@ -476,6 +476,68 @@ header{
 .cm-retorno__val{font-size:18px;font-weight:800;color:#1e40af}
 .cm-retorno__sub{font-size:11px;color:#3b82f6}
 
+/* ─── Install modal ──────────────────────────────────────────────────────── */
+#installModal{
+  position:fixed;inset:0;background:rgba(15,23,42,.52);
+  display:none;align-items:center;justify-content:center;
+  z-index:9998;padding:16px;backdrop-filter:blur(4px);
+}
+.inst-box{
+  background:var(--s1);border:1px solid var(--border);border-radius:18px;
+  width:min(440px,100%);max-height:86vh;overflow-y:auto;
+  box-shadow:var(--shadow-lg);animation:fadeUp .22s ease;
+}
+.inst-head{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+  padding:16px 20px 14px;
+  background:linear-gradient(135deg,var(--green-bg),var(--blue-bg));
+  border-bottom:1px solid var(--border);border-radius:18px 18px 0 0;
+}
+.inst-title{font-size:16px;font-weight:900;color:var(--text);margin-bottom:3px}
+.inst-sub  {font-size:12px;color:var(--muted)}
+.inst-close{
+  background:none;border:none;font-size:18px;color:var(--muted);cursor:pointer;
+  padding:2px 6px;line-height:1;border-radius:6px;flex-shrink:0;
+}
+.inst-close:hover{color:var(--text);background:var(--border)}
+.inst-body {padding:18px 20px 20px;display:flex;flex-direction:column;gap:14px}
+.inst-done{text-align:center;padding:10px}
+.inst-done__title{font-size:16px;font-weight:800;color:var(--green-d);margin-bottom:8px}
+.inst-done__sub{font-size:13px;color:var(--subtle);line-height:1.5}
+.inst-auto{
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  padding:14px;background:var(--green-bg);border:1.5px solid var(--green-border);
+  border-radius:12px;text-align:center;
+}
+.inst-auto__icon{font-size:32px}
+.inst-auto__text{font-size:13px;color:var(--green-text);font-weight:600;line-height:1.4}
+.inst-cta{
+  background:var(--green);color:#fff;border:none;border-radius:10px;
+  padding:11px 28px;font-size:14px;font-weight:800;cursor:pointer;
+  box-shadow:0 4px 12px rgba(16,185,129,.35);transition:opacity .2s;font-family:inherit;
+}
+.inst-cta:hover{opacity:.85}
+.inst-section-title{
+  font-size:11px;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:-4px;
+}
+.inst-step{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:10px 12px;background:var(--s2);border:1px solid var(--border);
+  border-radius:10px;font-size:13px;color:var(--text);line-height:1.45;
+}
+.inst-step__num{
+  flex-shrink:0;width:22px;height:22px;border-radius:50%;
+  background:var(--blue-d);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:800;margin-top:1px;
+}
+.inst-note{
+  font-size:12px;color:var(--subtle);padding:10px 12px;
+  background:var(--amber-bg);border:1px solid var(--amber-border);
+  border-radius:8px;line-height:1.5;
+}
+
 /* ─── AI button en cabecera de tarjeta historial ─────────────────────────── */
 .h-ai-btn{
   display:inline-flex;align-items:center;gap:4px;
@@ -724,7 +786,7 @@ header{
         <span id="connText">Conectando</span>
       </div>
       <button class="btn-notif" id="btnNotif" title="Activar notificaciones">🔔</button>
-      <button class="btn-install" id="btnInstall" style="display:none">⬇ Instalar</button>
+      <button class="btn-install" id="btnInstall" onclick="openInstallModal()" title="Instalar como app de escritorio">📲 Instalar</button>
     </div>
   </div>
 </header>
@@ -900,6 +962,20 @@ header{
     <div class="ai-modal__foot">
       <button class="ai-modal__copy" id="aiModalCopyBtn" onclick="copyAiModalText()">📋 Copiar para Nicolás</button>
     </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ INSTALL MODAL ══════════════════════ -->
+<div id="installModal">
+  <div class="inst-box">
+    <div class="inst-head">
+      <div>
+        <div class="inst-title">📲 Instalar Monitor de Reparto</div>
+        <div class="inst-sub">Acceso directo en tu PC, sin abrir el navegador</div>
+      </div>
+      <button class="inst-close" onclick="closeInstallModal()">✕</button>
+    </div>
+    <div id="installModalContent" class="inst-body"></div>
   </div>
 </div>
 
@@ -2020,16 +2096,75 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
    PWA INSTALL
 ═══════════════════════════════════════════════════════════════ */
 let deferredPrompt = null;
+
+const isStandalone = () =>
+  window.matchMedia('(display-mode: standalone)').matches ||
+  window.navigator.standalone === true;
+
 window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault(); deferredPrompt = e; $('btnInstall').style.display = '';
+  e.preventDefault();
+  deferredPrompt = e;
 });
-$('btnInstall').addEventListener('click', async () => {
-  if (!deferredPrompt) return;
+
+window.addEventListener('appinstalled', () => {
+  deferredPrompt = null;
+  $('btnInstall').style.display = 'none';
+  toast('ok', '✅ App instalada', 'Abrila desde el escritorio o la barra de tareas.');
+});
+
+function openInstallModal() {
+  const c = $('installModalContent');
+  if (isStandalone()) {
+    c.innerHTML = `
+      <div class="inst-done">
+        <div style="font-size:52px;margin-bottom:12px">✅</div>
+        <div class="inst-done__title">¡Ya está instalada!</div>
+        <div class="inst-done__sub">El Monitor de Reparto ya corre como app independiente en esta PC. Podés abrirla desde el escritorio o la barra de tareas.</div>
+      </div>`;
+  } else if (deferredPrompt) {
+    c.innerHTML = `
+      <div class="inst-auto">
+        <div class="inst-auto__icon">🖥️</div>
+        <div class="inst-auto__text">Chrome puede instalarla directamente como app de escritorio — un solo click.</div>
+        <button class="inst-cta" onclick="triggerNativeInstall()">⬇ Instalar ahora</button>
+      </div>
+      <div class="inst-section-title">O instalá desde la barra de Chrome:</div>
+      ${_stepsChrome()}
+      <div class="inst-note">💡 Una vez instalada aparece en el escritorio y en la barra de tareas. Funciona aunque cierres Chrome.</div>`;
+  } else {
+    c.innerHTML = `
+      <div class="inst-section-title">Cómo instalar en Chrome / Edge (PC):</div>
+      ${_stepsChrome()}
+      <div class="inst-section-title" style="margin-top:4px">Si no aparece el ícono ⊕ en Chrome:</div>
+      <div class="inst-step">
+        <div class="inst-step__num">→</div>
+        <div>Hacé click en el menú <strong>⋮</strong> (tres puntos, arriba a la derecha) → <strong>"Guardar e instalar"</strong> o <strong>"Instalar Monitor de Reparto…"</strong></div>
+      </div>
+      <div class="inst-note">💡 Si ya la instalaste antes, buscá <em>Monitor de Reparto</em> en el menú Inicio de Windows.</div>`;
+  }
+  $('installModal').style.display = 'flex';
+}
+
+function _stepsChrome() {
+  return `
+    <div class="inst-step"><div class="inst-step__num">1</div><div>Mirá el ícono <strong>⊕</strong> a la derecha de la barra de direcciones de Chrome</div></div>
+    <div class="inst-step"><div class="inst-step__num">2</div><div>Hacé click en ese ícono → <strong>"Instalar Monitor de Reparto…"</strong></div></div>
+    <div class="inst-step"><div class="inst-step__num">3</div><div>Confirmá con el botón <strong>"Instalar"</strong></div></div>`;
+}
+
+async function triggerNativeInstall() {
+  if (!deferredPrompt) { openInstallModal(); return; }
   deferredPrompt.prompt();
   const { outcome } = await deferredPrompt.userChoice;
-  if (outcome === 'accepted') $('btnInstall').style.display = 'none';
   deferredPrompt = null;
-});
+  if (outcome === 'accepted') closeInstallModal();
+}
+
+function closeInstallModal() {
+  $('installModal').style.display = 'none';
+}
+
+$('installModal').addEventListener('click', e => { if (e.target === $('installModal')) closeInstallModal(); });
 
 /* ═══════════════════════════════════════════════════════════════
    KEYBOARD SHORTCUTS
@@ -2050,7 +2185,8 @@ document.addEventListener('DOMContentLoaded', () => {
   loadToday();
   subscribeRealtime();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
-  setInterval(() => loadToday(true), 10_000); // Cada 10s como respaldo — silencioso para no parpadear
+  setInterval(() => loadToday(true), 10_000);
+  if (isStandalone()) $('btnInstall').style.display = 'none';
   const params = new URLSearchParams(location.search);
   if (params.get('tab') === 'historial') document.querySelector('[data-tab="historial"]')?.click();
 });
