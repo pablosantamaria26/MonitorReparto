@@ -330,6 +330,7 @@ header{
 .d-card__main{flex:1;min-width:0}
 .d-card__name{font-size:13.5px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .d-card__loc{font-size:11px;color:var(--muted);margin-top:1px}
+.d-card__vend{font-style:italic;opacity:.8}
 
 /* Compact status tag */
 .d-card__status{
@@ -1002,6 +1003,7 @@ const state = {
   pedidos: [], turno: '', fecha: '', repartidor: '', lastUpdate: null, filter: 'todos', connected: false,
   completionShownKey: null,
   graceHold: false, graceTimer: null, completionCopiloto: null,
+  vendedorMap: new Map(), // clienteId → nombre vendedor
 };
 const GRACE_MS = 15 * 60 * 1000; // cuánto se retiene el resumen en pantalla tras enviar la rendición
 
@@ -1090,6 +1092,17 @@ function calcAvgFromHistory(detalle) {
 const sb = window.supabase.createClient(SB_URL, SB_KEY, {
   realtime: { params: { eventsPerSecond: 10 } },
 });
+
+async function loadVendedores() {
+  try {
+    const { data } = await sb.from('clientes').select('id,vendedor');
+    if (data) {
+      const m = new Map();
+      data.forEach(c => { if (c.id) m.set(String(c.id), String(c.vendedor || '')); });
+      state.vendedorMap = m;
+    }
+  } catch(e) { /* silencioso: si falla, las tarjetas muestran sin vendedor */ }
+}
 
 async function loadToday(silent = false) {
   if (!silent) setConn('sync', 'Actualizando…');
@@ -1318,12 +1331,13 @@ function buildCardHTML(p, deliveryOrderMap) {
   const badgeCls    = isDone ? 'delivered' : 'pending';
   const statusCls   = isDone ? 'ok' : 'pend';
   const statusTxt   = isDone ? '✅ Ent.' : '⏳ En ruta';
+  const vend = (state.vendedorMap.get(String(p.numeroCliente)) || '').trim();
   return `
     <div class="d-card__top">
       <div class="d-card__badge ${badgeCls}">${numLabel}</div>
       <div class="d-card__main">
         <div class="d-card__name">Nº ${p.numeroCliente} — ${p.nombre}</div>
-        <div class="d-card__loc">📍 ${p.localidad || ''}</div>
+        <div class="d-card__loc">📍 ${p.localidad || ''}${vend ? ` · <span class="d-card__vend">Lo levantó ${vend}</span>` : ''}</div>
       </div>
     </div>
     ${isDev ? `<div class="d-card__dev-note">↩ Con devolución${p.notasDevolucion ? ': ' + p.notasDevolucion : ''}</div>` : ''}
@@ -1631,6 +1645,7 @@ function openModal(p) {
     <div class="modal__row"><label>Cliente</label><span>${p.nombre}</span></div>
     <div class="modal__row"><label>Dirección</label><span>${p.domicilio || '—'}, ${p.localidad || '—'}</span></div>
     ${p.telefono ? `<div class="modal__row"><label>Teléfono</label><span><a href="tel:${p.telefono}">${p.telefono}</a></span></div>` : ''}
+    ${(state.vendedorMap.get(String(p.numeroCliente))||'').trim() ? `<div class="modal__row"><label>Vendedor</label><span>🧑‍💼 ${state.vendedorMap.get(String(p.numeroCliente))}</span></div>` : ''}
     <hr class="modal__divider"/>
     <div class="modal__row"><label>Estado</label>
       <span class="status-pill ${isDone?'ok':'pend'}" style="display:inline-flex">
@@ -2178,6 +2193,7 @@ $('btnNotif').addEventListener('click', requestNotif);
 
 document.addEventListener('DOMContentLoaded', () => {
   initMap();
+  loadVendedores();
   loadToday();
   subscribeRealtime();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
