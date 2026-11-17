@@ -2197,7 +2197,20 @@ document.addEventListener('DOMContentLoaded', () => {
   loadToday();
   subscribeRealtime();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
-  setInterval(() => loadToday(true), 10_000);
+  /* 17/11/2026 · Plan Free de Supabase: los cambios ya llegan en vivo (Realtime, no cuesta consultas a la base).
+     La consulta periódica es solo un respaldo: cada 2 min con la pestaña a la vista y en horario de reparto
+     (lun–sáb 7–20 h, hora argentina); cada 30 s si el canal en vivo está caído. Fuera de horario o con la pestaña
+     oculta no consulta (antes: cada 10 s siempre, también de noche con la pestaña abierta). */
+  let ultimaCarga = Date.now();
+  const enHorario = () => { const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Argentina/Buenos_Aires', weekday: 'short', hour: 'numeric', hour12: false }).formatToParts(new Date());
+    const dia = (p.find(x => x.type === 'weekday') || {}).value, h = Number((p.find(x => x.type === 'hour') || {}).value);
+    return dia !== 'Sun' && h >= 7 && h < 20; };
+  setInterval(() => {
+    if (document.hidden || !enHorario()) return;
+    const cada = state.connected ? 120_000 : 30_000;
+    if (Date.now() - ultimaCarga >= cada) { ultimaCarga = Date.now(); loadToday(true); }
+  }, 10_000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - ultimaCarga > 30_000) { ultimaCarga = Date.now(); loadToday(true); } });
   if (isStandalone()) $('btnInstall').style.display = 'none';
   const params = new URLSearchParams(location.search);
   if (params.get('tab') === 'historial') document.querySelector('[data-tab="historial"]')?.click();
