@@ -1046,7 +1046,7 @@ function calcKPIs(pedidos) {
   let efectivo = 0, transferencia = 0, cheque = 0, porCobrar = 0;
   pedidos.forEach(p => {
     if (!p.entregado && !p.devolucion) {
-      porCobrar += Number(p.importeTotal) || 0;
+      porCobrar += (Number(p.importeTotal) || 0) + (Number(p.queruclor) || 0);   // 19/11: importeTotal = Habituales; Queruclor viaja aparte en «queruclor»
     } else {
       const add = (tipo, imp) => {
         const t = (tipo||'').toLowerCase();
@@ -1345,7 +1345,7 @@ function buildCardHTML(p, deliveryOrderMap) {
       <span class="d-card__status ${statusCls}">${statusTxt}</span>
       ${hora ? `<span class="d-card__meta-item">🕐 ${hora}</span>` : ''}
       ${pago ? `<span class="d-card__meta-item">💳 ${pago}</span>` : ''}
-      <span class="d-card__meta-importe">$ ${money(p.importeTotal)}</span>
+      <span class="d-card__meta-importe">$ ${money((Number(p.importeTotal) || 0) + (Number(p.queruclor) || 0))}</span>
     </div>`;
 }
 
@@ -1622,7 +1622,7 @@ function buildPopup(p, deliveryOrder) {
     ${isDev && p.notasDevolucion ? `<div class="pop-row" style="color:#059669;font-size:11px">Devolvió: ${p.notasDevolucion}</div>` : ''}
     ${hora  ? `<div class="pop-row">⏱ ${hora}</div>` : ''}
     ${pago  ? `<div class="pop-row">💳 ${pago}</div>` : ''}
-    <div class="pop-row" style="margin-top:4px">Importe: <strong>$${money(p.importeTotal)}</strong></div>
+    <div class="pop-row" style="margin-top:4px">Importe: <strong>$${money((Number(p.importeTotal) || 0) + (Number(p.queruclor) || 0))}</strong>${Number(p.queruclor) > 0 ? ` (Habituales $${money(p.importeTotal)} + Queruclor $${money(p.queruclor)})` : ``}</div>
     ${p.comprobanteId ? `<div class="pop-row"><a href="https://drive.google.com/uc?id=${p.comprobanteId}&export=view" target="_blank">📷 Ver comprobante</a></div>` : ''}
   `;
 }
@@ -1654,7 +1654,7 @@ function openModal(p) {
     </div>
     ${isDev ? `<div class="modal__row"><label>Devolución</label><span class="d-card__dev-note" style="display:inline-block">↩ ${p.notasDevolucion || 'El repartidor registró devolución'}</span></div>` : ''}
     ${hora ? `<div class="modal__row"><label>Hora de entrega</label><span>🕐 ${hora}</span></div>` : ''}
-    <div class="modal__row"><label>Importe factura</label><span>$ ${money(p.importeTotal)}</span></div>
+    <div class="modal__row"><label>Importe factura</label><span>$ ${money((Number(p.importeTotal) || 0) + (Number(p.queruclor) || 0))}${Number(p.queruclor) > 0 ? ` (Habituales $ ${money(p.importeTotal)} + Queruclor $ ${money(p.queruclor)})` : ``}</span></div>
     ${pago ? `<div class="modal__row"><label>Forma de pago</label><span>${pago}</span></div>` : ''}
     <hr class="modal__divider"/>
     <div class="modal__row"><label>Orden de entrega</label><span>${p.orden || '—'}</span></div>
